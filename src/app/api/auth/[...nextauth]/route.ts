@@ -46,7 +46,7 @@ export const authOptions: AuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    // signIn: '/login', // Nanti akan diaktifkan saat membuat Halaman Login
+    signIn: '/login',
   },
 };
 
