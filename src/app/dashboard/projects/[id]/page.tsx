@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Clock, Users, CheckCircle2, AlertCircle, Loader2, LayoutGrid, List } from "lucide-react";
 import Link from "next/link";
 
-import { KanbanTask, KanbanProject, KanbanMember, TaskStatus, COLUMNS } from "@/frontend/components/kanban/types";
+import { KanbanTask, KanbanProject, KanbanMember, TaskStatus, Priority, COLUMNS } from "@/frontend/components/kanban/types";
 import { MarkdownRenderer } from "@/frontend/components/ui/MarkdownRenderer";
 import { Breadcrumb } from "@/frontend/components/layout/Breadcrumb";
 import { KanbanColumn } from "@/frontend/components/kanban/KanbanColumn";
@@ -18,6 +18,8 @@ import { MembersPanel } from "@/frontend/components/kanban/MembersPanel";
 import { KanbanFilterBar, KanbanFilters } from "@/frontend/components/kanban/KanbanFilterBar";
 import { TaskListView } from "@/frontend/components/kanban/TaskListView";
 import { BulkActionBar } from "@/frontend/components/kanban/BulkActionBar";
+
+// ─── Module-level constants ─────────────────────────────────────────────────────
 
 const PROJECT_STATUS_STYLES = {
   ACTIVE:    "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
@@ -30,10 +32,19 @@ const PROJECT_STATUS_LABELS = {
   ACTIVE: "Aktif", ON_HOLD: "Ditahan", COMPLETED: "Selesai", ARCHIVED: "Diarsipkan",
 } as const;
 
+const STATUS_LABELS: Record<TaskStatus, string> = {
+  TODO: "To Do", IN_PROGRESS: "In Progress", IN_REVIEW: "In Review", DONE: "Done",
+};
+
+const PRIORITY_WEIGHT: Record<Priority, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+
+// ─── Component ──────────────────────────────────────────────────────────────────
+
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const toast = useToast();
 
+  // ── State ────────────────────────────────────────────────────────────────────
   const [project, setProject] = useState<KanbanProject | null>(null);
   const [tasks, setTasks] = useState<KanbanTask[]>([]);
   const [members, setMembers] = useState<KanbanMember[]>([]);
@@ -44,24 +55,51 @@ export default function ProjectDetailPage() {
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
   const [viewingTask, setViewingTask] = useState<KanbanTask | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [filters, setFilters] = useState<KanbanFilters>({
     priority: "ALL",
     assigneeId: "ALL",
     sortBy: "newest",
   });
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
 
-  const toggleTask = (id: string, sel: boolean) => {
-    setSelectedTaskIds((prev) => {
-      const next = new Set(prev);
-      if (sel) next.add(id); else next.delete(id);
-      return next;
+  // Deadline / overdue — kept in state to avoid hydration mismatch
+  const [overdueTasks, setOverdueTasks] = useState<KanbanTask[]>([]);
+  const [deadlineDays, setDeadlineDays] = useState<number | null>(null);
+  const [deadlineStr, setDeadlineStr] = useState("–");
+
+  // ── Derived data (hooks must all be above early returns) ────────────────────
+  const filteredTasks = useMemo(() => {
+    let result = [...tasks];
+    if (filters.priority !== "ALL") {
+      result = result.filter((t) => t.priority === filters.priority);
+    }
+    if (filters.assigneeId !== "ALL") {
+      result = result.filter((t) => t.assignee?.id === filters.assigneeId);
+    }
+    result.sort((a, b) => {
+      switch (filters.sortBy) {
+        case "newest":        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "oldest":        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "due_asc":  {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1; if (!b.dueDate) return -1;
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        case "due_desc": {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1; if (!b.dueDate) return -1;
+          return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+        }
+        case "priority_high": return PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority];
+        case "priority_low":  return PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority];
+        default:              return 0;
+      }
     });
-  };
+    return result;
+  }, [tasks, filters]);
 
-  const clearSelection = () => setSelectedTaskIds(new Set());
-
+  // ── Effects ──────────────────────────────────────────────────────────────────
   const fetchProject = useCallback(async () => {
     const [projRes, meRes] = await Promise.all([
       fetch(`/api/projects/${id}`),
@@ -80,31 +118,49 @@ export default function ProjectDetailPage() {
 
   useEffect(() => { fetchProject(); }, [fetchProject]);
 
-  // ── Drag handlers ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const now = new Date();
+    setOverdueTasks(tasks.filter((t) => t.dueDate && new Date(t.dueDate) < now && t.status !== "DONE"));
+    const deadline = project?.deadline;
+    if (deadline) {
+      setDeadlineDays(Math.ceil((new Date(deadline).getTime() - now.getTime()) / 86400000));
+      setDeadlineStr(new Date(deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }));
+    } else {
+      setDeadlineDays(null);
+      setDeadlineStr("–");
+    }
+  }, [tasks, project?.deadline]);
 
+  // ── Selection helpers ─────────────────────────────────────────────────────────
+  const toggleTask = (taskId: string, sel: boolean) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (sel) next.add(taskId); else next.delete(taskId);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedTaskIds(new Set());
+
+  // ── Drag handlers ─────────────────────────────────────────────────────────────
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData("text/plain", taskId);
     e.dataTransfer.effectAllowed = "move";
     (e.target as HTMLElement).style.opacity = "0.4";
     (e.target as HTMLElement).style.transform = "rotate(2deg)";
   };
-
   const handleDragEnd = (e: React.DragEvent) => {
     (e.target as HTMLElement).style.opacity = "1";
     (e.target as HTMLElement).style.transform = "rotate(0deg)";
     setDragOverStatus(null);
   };
-
   const handleDragOver = (e: React.DragEvent, status: TaskStatus) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOverStatus(status);
   };
-
   const handleDragLeave = (e: React.DragEvent) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverStatus(null);
   };
-
   const handleDrop = (e: React.DragEvent, newStatus: TaskStatus) => {
     e.preventDefault();
     setDragOverStatus(null);
@@ -112,15 +168,10 @@ export default function ProjectDetailPage() {
     if (taskId) handleStatusChange(taskId, newStatus);
   };
 
-  // ── Task actions ───────────────────────────────────────────────────────────
-
-  const STATUS_LABELS: Record<TaskStatus, string> = {
-    TODO: "To Do", IN_PROGRESS: "In Progress", IN_REVIEW: "In Review", DONE: "Done",
-  };
-
+  // ── Task actions ──────────────────────────────────────────────────────────────
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     const prev = tasks.find((t) => t.id === taskId);
-    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: newStatus } : t));
+    setTasks((p) => p.map((t) => t.id === taskId ? { ...t, status: newStatus } : t));
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -136,48 +187,47 @@ export default function ProjectDetailPage() {
 
   const handleDeleteTask = async (taskId: string) => {
     const deleted = tasks.find((t) => t.id === taskId);
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setTasks((p) => p.filter((t) => t.id !== taskId));
     const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
     if (res.ok) {
       toast(`Tugas "${deleted?.title}" dihapus.`, "info");
     } else {
-      if (deleted) setTasks((prev) => [deleted, ...prev]);
+      if (deleted) setTasks((p) => [deleted, ...p]);
       toast("Gagal menghapus tugas.", "error");
     }
   };
 
   const handleTaskCreated = (task: KanbanTask) => {
-    setTasks((prev) => [task, ...prev]);
+    setTasks((p) => [task, ...p]);
     toast(`Tugas "${task.title}" berhasil dibuat.`, "success");
   };
 
   const handleTaskUpdated = (updated: KanbanTask) => {
-    setTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t));
+    setTasks((p) => p.map((t) => t.id === updated.id ? updated : t));
     toast(`Tugas "${updated.title}" berhasil diperbarui.`, "success");
   };
 
   const handleBulkStatusChange = async (status: TaskStatus) => {
     const ids = [...selectedTaskIds];
-    await Promise.all(ids.map((id) =>
-      fetch(`/api/tasks/${id}`, {
+    await Promise.all(ids.map((tid) =>
+      fetch(`/api/tasks/${tid}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       })
     ));
-    setTasks((prev) => prev.map((t) => selectedTaskIds.has(t.id) ? { ...t, status } : t));
+    setTasks((p) => p.map((t) => selectedTaskIds.has(t.id) ? { ...t, status } : t));
     toast(`${ids.length} tugas diperbarui ke ${STATUS_LABELS[status]}.`, "success");
   };
 
   const handleBulkDelete = async () => {
     const ids = [...selectedTaskIds];
-    await Promise.all(ids.map((id) => fetch(`/api/tasks/${id}`, { method: "DELETE" })));
-    setTasks((prev) => prev.filter((t) => !selectedTaskIds.has(t.id)));
+    await Promise.all(ids.map((tid) => fetch(`/api/tasks/${tid}`, { method: "DELETE" })));
+    setTasks((p) => p.filter((t) => !selectedTaskIds.has(t.id)));
     toast(`${ids.length} tugas dihapus.`, "info");
   };
 
-  // ── Render guards ──────────────────────────────────────────────────────────
-
+  // ── Render guards (all hooks above this line) ─────────────────────────────────
   if (notFound) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-24">
@@ -198,59 +248,12 @@ export default function ProjectDetailPage() {
 
   if (!project) return null;
 
-  const PRIORITY_WEIGHT = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 } as const;
-
-  const filteredTasks = useMemo(() => {
-    let result = [...tasks];
-
-    if (filters.priority !== "ALL") {
-      result = result.filter((t) => t.priority === filters.priority);
-    }
-    if (filters.assigneeId !== "ALL") {
-      result = result.filter((t) => t.assignee?.id === filters.assigneeId);
-    }
-
-    result.sort((a, b) => {
-      switch (filters.sortBy) {
-        case "newest":        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case "oldest":        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case "due_asc":       {
-          if (!a.dueDate && !b.dueDate) return 0;
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        }
-        case "due_desc":      {
-          if (!a.dueDate && !b.dueDate) return 0;
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
-          return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
-        }
-        case "priority_high": return PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority];
-        case "priority_low":  return PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority];
-        default:              return 0;
-      }
-    });
-
-    return result;
-  }, [tasks, filters]);
-
+  // ── Post-guard computations (not hooks) ────────────────────────────────────────
   const tasksByStatus = (status: TaskStatus) => filteredTasks.filter((t) => t.status === status);
   const doneCount = tasks.filter((t) => t.status === "DONE").length;
   const progress = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
 
-  const [overdueTasks, setOverdueTasks] = useState<KanbanTask[]>([]);
-  const [deadlineDays, setDeadlineDays] = useState<number | null>(null);
-  const [deadlineStr, setDeadlineStr] = useState("–");
-  useEffect(() => {
-    const now = new Date();
-    setOverdueTasks(tasks.filter((t) => t.dueDate && new Date(t.dueDate) < now && t.status !== "DONE"));
-    if (project.deadline) {
-      setDeadlineDays(Math.ceil((new Date(project.deadline).getTime() - now.getTime()) / 86400000));
-      setDeadlineStr(new Date(project.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }));
-    }
-  }, [tasks, project.deadline]);
-
+  // ── JSX ───────────────────────────────────────────────────────────────────────
   return (
     <>
       <AnimatePresence>
@@ -290,7 +293,6 @@ export default function ProjectDetailPage() {
               )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* View toggle */}
               <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-xl p-1 gap-0.5">
                 <button type="button" onClick={() => setViewMode("kanban")} title="Kanban view"
                   className={`p-2 rounded-lg transition-all ${viewMode === "kanban"
@@ -305,7 +307,6 @@ export default function ProjectDetailPage() {
                   <List className="w-4 h-4" />
                 </button>
               </div>
-
               <button type="button" onClick={() => setAddTaskStatus("TODO")}
                 className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors shadow-sm">
                 <Plus className="w-4 h-4" /> Tambah Tugas
@@ -320,7 +321,7 @@ export default function ProjectDetailPage() {
             { label: "Total Tugas",  value: tasks.length,                        icon: CheckCircle2, color: "text-indigo-500" },
             { label: "In Progress",  value: tasksByStatus("IN_PROGRESS").length, icon: Loader2,      color: "text-amber-500" },
             { label: "Anggota",      value: project._count.members,              icon: Users,        color: "text-emerald-500" },
-            { label: "Deadline",     value: deadlineStr, icon: Clock, color: "text-rose-500" },
+            { label: "Deadline",     value: deadlineStr,                         icon: Clock,        color: "text-rose-500" },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className="flex items-center gap-3 p-4 bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800">
@@ -392,7 +393,7 @@ export default function ProjectDetailPage() {
           onMembersChange={setMembers}
         />
 
-        {/* Filter bar — shared antara kedua view */}
+        {/* Filter bar */}
         {tasks.length > 0 && (
           <KanbanFilterBar
             filters={filters}
@@ -403,7 +404,6 @@ export default function ProjectDetailPage() {
           />
         )}
 
-        {/* Filtered result info */}
         {filteredTasks.length < tasks.length && (
           <p className="text-sm text-neutral-500">
             Menampilkan{" "}
