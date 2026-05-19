@@ -32,6 +32,7 @@ export function Topbar() {
       <div className="flex items-center gap-4">
         {mounted && (
           <button
+            aria-label="Toggle Theme"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 rounded-full transition-all"
           >
@@ -39,13 +40,15 @@ export function Topbar() {
           </button>
         )}
         
-        <button className="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 rounded-full relative transition-all">
+        <button aria-label="Notifikasi" title="Notifikasi" className="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 rounded-full relative transition-all">
           <Bell className="w-5 h-5" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-neutral-900"></span>
         </button>
 
         <div className="relative">
           <button 
+            aria-label="Profil Pengguna"
+            title="Profil Pengguna"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 p-1 pl-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
           >
