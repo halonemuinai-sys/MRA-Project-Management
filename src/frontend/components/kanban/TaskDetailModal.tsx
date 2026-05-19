@@ -2,9 +2,107 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageSquare, Loader2, Trash2, Send, Flag, Calendar } from "lucide-react";
+import { X, MessageSquare, Loader2, Trash2, Send, Flag, Calendar, Pencil, Check } from "lucide-react";
 import { KanbanTask, KanbanComment, PRIORITY_STYLES } from "./types";
 import { useToast } from "@/frontend/lib/toast";
+
+// ─── CommentItem ───────────────────────────────────────────────────────────────
+
+function CommentItem({ comment, isOwn, onDelete, onUpdated }: {
+  comment: KanbanComment;
+  isOwn: boolean;
+  onDelete: (id: string) => void;
+  onUpdated: (updated: KanbanComment) => void;
+}) {
+  const toast = useToast();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(comment.content);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!draft.trim() || draft === comment.content) { setEditing(false); return; }
+    setSaving(true);
+    const res = await fetch(`/api/comments/${comment.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: draft }),
+    });
+    setSaving(false);
+    if (!res.ok) { toast("Gagal menyimpan komentar.", "error"); return; }
+    onUpdated(await res.json());
+    setEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSave();
+    if (e.key === "Escape") { setEditing(false); setDraft(comment.content); }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+      className="flex gap-3 group">
+      <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
+        {(comment.author.name ?? comment.author.email ?? "?")[0].toUpperCase()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2">
+          <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+            {comment.author.name ?? comment.author.email}
+          </span>
+          <span suppressHydrationWarning className="text-[10px] text-neutral-400">
+            {new Date(comment.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          </span>
+          {comment.updatedAt !== comment.createdAt && (
+            <span className="text-[10px] text-neutral-300 dark:text-neutral-600 italic">(diedit)</span>
+          )}
+        </div>
+
+        {editing ? (
+          <div className="mt-1.5 space-y-1.5">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={3}
+              autoFocus
+              title="Edit komentar"
+              className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-indigo-400 rounded-xl text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"
+            />
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={handleSave} disabled={saving || !draft.trim()}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-60">
+                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                Simpan
+              </button>
+              <button type="button" onClick={() => { setEditing(false); setDraft(comment.content); }}
+                className="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">
+                Batal
+              </button>
+              <span className="text-[10px] text-neutral-300 dark:text-neutral-600 ml-auto">Ctrl+Enter simpan · Esc batal</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-neutral-700 dark:text-neutral-300 mt-0.5 whitespace-pre-wrap">{comment.content}</p>
+        )}
+      </div>
+
+      {isOwn && !editing && (
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <button type="button" onClick={() => setEditing(true)} title="Edit komentar"
+            className="p-1 rounded text-neutral-300 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all">
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          <button type="button" onClick={() => onDelete(comment.id)} title="Hapus komentar"
+            className="p-1 rounded text-neutral-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ─── Modal ──────────────────────────────────────────────────────────────────────
 
 interface TaskDetailModalProps {
   task: KanbanTask;
@@ -124,29 +222,13 @@ export function TaskDetailModal({ task, currentUserId, onClose }: TaskDetailModa
           ) : (
             <AnimatePresence>
               {comments.map((c) => (
-                <motion.div key={c.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-3 group">
-                  <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
-                    {(c.author.name ?? c.author.email ?? "?")[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                        {c.author.name ?? c.author.email}
-                      </span>
-                      <span suppressHydrationWarning className="text-[10px] text-neutral-400">
-                        {new Date(c.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
-                    <p className="text-sm text-neutral-700 dark:text-neutral-300 mt-0.5 whitespace-pre-wrap">{c.content}</p>
-                  </div>
-                  {c.author.id === currentUserId && (
-                    <button type="button" onClick={() => handleDelete(c.id)} title="Hapus komentar"
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded text-neutral-300 hover:text-red-500 transition-all flex-shrink-0">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </motion.div>
+                <CommentItem
+                  key={c.id}
+                  comment={c}
+                  isOwn={c.author.id === currentUserId}
+                  onDelete={handleDelete}
+                  onUpdated={(updated) => setComments((prev) => prev.map((x) => x.id === updated.id ? updated : x))}
+                />
               ))}
             </AnimatePresence>
           )}

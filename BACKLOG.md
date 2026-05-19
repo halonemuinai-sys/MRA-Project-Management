@@ -13,7 +13,7 @@
 | 2 | **Filter & Sort Projects** | Filter by status (Aktif/Selesai/Arsip), sort by deadline/nama/tanggal. | `[x]` |
 | 3 | **Subtask / Checklist** | Task bisa dipecah jadi item-item kecil dengan checkbox progress. | `[ ]` |
 | 4 | **Task Labels / Tags** | Label custom per task (contoh: "bug", "feature", "design") dengan warna. | `[ ]` |
-| 5 | **Edit Komentar** | Komentar hanya bisa dihapus, tidak bisa diedit setelah dikirim. | `[ ]` |
+| 5 | **Edit Komentar** | Komentar hanya bisa dihapus, tidak bisa diedit setelah dikirim. | `[x]` |
 | 6 | **Forgot Password** | Halaman `/forgot-password` dan alur reset password via email. | `[ ]` |
 | 7 | **Kalender View** | Tampilan task berdasarkan tanggal/deadline dalam format kalender bulanan. | `[ ]` |
 
@@ -30,7 +30,7 @@
 | 12 | **Activity Log per Task** | Riwayat perubahan ("X mengubah status dari TODO → DONE pada 10 Jan 14:30"). | `[ ]` |
 | 13 | **Bulk Action Task** | Pilih beberapa task sekaligus untuk pindah status, assign, atau delete. | `[ ]` |
 | 14 | **Pinned / Starred Project** | Tandai proyek favorit, tampil di bagian atas daftar. | `[ ]` |
-| 15 | **Breadcrumb Navigation** | Navigasi hierarki: Dashboard → Projects → [Nama Proyek]. | `[ ]` |
+| 15 | **Breadcrumb Navigation** | Navigasi hierarki: Dashboard → Projects → [Nama Proyek]. | `[x]` |
 
 ---
 
@@ -44,8 +44,8 @@
 | 19 | **Email Notification** | Kirim email saat task diassign, deadline dekat, atau komentar baru. | `[ ]` |
 | 20 | **Real-time Collaboration** | Perubahan dari user lain langsung muncul tanpa refresh (WebSocket/SSE). | `[ ]` |
 | 21 | **Keyboard Shortcuts** | Shortcut: `N` buat task baru, `Esc` tutup modal, `?` tampilkan daftar shortcut. | `[ ]` |
-| 22 | **Error Pages (404/500)** | Halaman error custom sesuai branding MRA, bukan default Next.js. | `[ ]` |
-| 23 | **Sort Task dalam Kolom** | Task di dalam kolom Kanban bisa diurutkan by priority atau due date. | `[ ]` |
+| 22 | **Error Pages (404/500)** | Halaman error custom sesuai branding MRA, bukan default Next.js. | `[x]` |
+| 23 | **Sort Task dalam Kolom** | Task di dalam kolom Kanban bisa diurutkan by priority atau due date. | `[x]` |
 
 ---
 

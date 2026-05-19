@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useToast } from "@/frontend/lib/toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Plus, Clock, Users, CheckCircle2, AlertCircle, Loader2, LayoutGrid, List } from "lucide-react";
+import { Plus, Clock, Users, CheckCircle2, AlertCircle, Loader2, LayoutGrid, List } from "lucide-react";
 import Link from "next/link";
 
 import { KanbanTask, KanbanProject, KanbanMember, TaskStatus, COLUMNS } from "@/frontend/components/kanban/types";
+import { Breadcrumb } from "@/frontend/components/layout/Breadcrumb";
 import { KanbanColumn } from "@/frontend/components/kanban/KanbanColumn";
 import { AddTaskModal } from "@/frontend/components/kanban/AddTaskModal";
 import { EditTaskModal } from "@/frontend/components/kanban/EditTaskModal";
@@ -235,12 +236,12 @@ export default function ProjectDetailPage() {
       </AnimatePresence>
 
       <div className="space-y-6">
-        {/* Back + Header */}
+        {/* Breadcrumb + Header */}
         <div>
-          <Link href="/dashboard/projects"
-            className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-indigo-500 transition-colors mb-4">
-            <ArrowLeft className="w-4 h-4" /> Semua Proyek
-          </Link>
+          <Breadcrumb items={[
+            { label: "Proyek", href: "/dashboard/projects" },
+            { label: project.name },
+          ]} />
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">

@@ -25,6 +25,7 @@ export interface KanbanComment {
   content: string;
   author: KanbanUser;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface KanbanMember {
