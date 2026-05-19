@@ -56,12 +56,15 @@ interface KanbanColumnProps {
   onDragOver: (e: React.DragEvent, status: TaskStatus) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, status: TaskStatus) => void;
+  selectedTaskIds?: Set<string>;
+  onSelectTask?: (id: string, selected: boolean) => void;
 }
 
 export function KanbanColumn({
   column, tasks, isDragOver,
   onAddTask, onStatusChange, onDelete, onEdit, onView,
   onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
+  selectedTaskIds, onSelectTask,
 }: KanbanColumnProps) {
   const [columnSort, setColumnSort] = useState<ColumnSort>("default");
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -181,6 +184,8 @@ export function KanbanColumn({
                 onView={onView}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
+                selected={selectedTaskIds?.has(task.id)}
+                onSelect={onSelectTask}
               />
             ))}
           </AnimatePresence>

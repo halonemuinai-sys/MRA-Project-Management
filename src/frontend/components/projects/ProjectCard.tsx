@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MoreHorizontal, Pencil, Trash2, CheckCircle2, Users, Clock, Loader2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, CheckCircle2, Users, Clock, Loader2, Star, Pin } from "lucide-react";
 import Link from "next/link";
 import { ProjectListItem, STATUS_STYLES, STATUS_LABELS } from "./types";
 import { useToast } from "@/frontend/lib/toast";
@@ -11,13 +11,15 @@ interface ProjectCardProps {
   project: ProjectListItem;
   onEdit: (project: ProjectListItem) => void;
   onDeleted: (id: string) => void;
+  onPinToggle: (id: string, pinned: boolean) => void;
 }
 
-export function ProjectCard({ project, onEdit, onDeleted }: ProjectCardProps) {
+export function ProjectCard({ project, onEdit, onDeleted, onPinToggle }: ProjectCardProps) {
   const toast = useToast();
   const [showMenu, setShowMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pinning, setPinning] = useState(false);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -26,6 +28,17 @@ export function ProjectCard({ project, onEdit, onDeleted }: ProjectCardProps) {
     if (!res.ok) { toast("Gagal menghapus proyek.", "error"); return; }
     toast(`Proyek "${project.name}" dihapus.`, "info");
     onDeleted(project.id);
+  };
+
+  const handlePin = async () => {
+    setPinning(true);
+    setShowMenu(false);
+    const res = await fetch(`/api/projects/${project.id}/pin`, { method: "PATCH" });
+    setPinning(false);
+    if (!res.ok) { toast("Gagal mengubah pin.", "error"); return; }
+    const { pinned } = await res.json();
+    onPinToggle(project.id, pinned);
+    toast(pinned ? "Proyek disematkan." : "Pin proyek dihapus.", "success");
   };
 
   return (
@@ -44,7 +57,7 @@ export function ProjectCard({ project, onEdit, onDeleted }: ProjectCardProps) {
               initial={{ opacity: 0, scale: 0.9, y: -4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: -4 }}
-              className="absolute right-0 top-8 w-44 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden"
+              className="absolute right-0 top-8 w-48 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden"
               onMouseLeave={() => { setShowMenu(false); setConfirmDelete(false); }}
             >
               {confirmDelete ? (
@@ -64,6 +77,14 @@ export function ProjectCard({ project, onEdit, onDeleted }: ProjectCardProps) {
                 </div>
               ) : (
                 <>
+                  <button type="button" onClick={handlePin} disabled={pinning}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-60">
+                    {pinning
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Star className={`w-3.5 h-3.5 ${project.pinned ? "text-amber-400 fill-amber-400" : ""}`} />
+                    }
+                    {project.pinned ? "Hapus Pin" : "Sematkan"}
+                  </button>
                   <button type="button" onClick={() => { onEdit(project); setShowMenu(false); }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
                     <Pencil className="w-3.5 h-3.5" /> Edit Proyek
@@ -81,10 +102,13 @@ export function ProjectCard({ project, onEdit, onDeleted }: ProjectCardProps) {
 
       <Link href={`/dashboard/projects/${project.id}`} className="block p-5">
         <div className="flex items-start justify-between mb-3 pr-6">
-          <h3 className="font-semibold text-neutral-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
-            {project.name}
-          </h3>
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 ${STATUS_STYLES[project.status]}`}>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {project.pinned && <Pin className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />}
+            <h3 className="font-semibold text-neutral-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
+              {project.name}
+            </h3>
+          </div>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 ml-2 ${STATUS_STYLES[project.status]}`}>
             {STATUS_LABELS[project.status]}
           </span>
         </div>

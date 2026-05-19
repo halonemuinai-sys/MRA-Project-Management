@@ -19,6 +19,8 @@ interface TaskListViewProps {
   onDelete: (taskId: string) => void;
   onView: (task: KanbanTask) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
+  selectedTaskIds?: Set<string>;
+  onSelectTask?: (id: string, selected: boolean) => void;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -119,12 +121,14 @@ function useIsOverdue(dueDate: string | null, status: TaskStatus) {
 
 // ─── Task Row ───────────────────────────────────────────────────────────────────
 
-function TaskRow({ task, onEdit, onDelete, onView, onStatusChange }: {
+function TaskRow({ task, onEdit, onDelete, onView, onStatusChange, selected, onSelect }: {
   task: KanbanTask;
   onEdit: (t: KanbanTask) => void;
   onDelete: (id: string) => void;
   onView: (t: KanbanTask) => void;
   onStatusChange: (id: string, s: TaskStatus) => void;
+  selected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
 }) {
   const isOverdue = useIsOverdue(task.dueDate, task.status);
 
@@ -136,6 +140,17 @@ function TaskRow({ task, onEdit, onDelete, onView, onStatusChange }: {
       exit={{ opacity: 0 }}
       className="group border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
     >
+      {/* Checkbox */}
+      {onSelect && (
+        <td className="py-3 pl-4 pr-2 w-8">
+          <input type="checkbox" checked={!!selected}
+            onChange={(e) => onSelect(task.id, e.target.checked)}
+            title="Pilih tugas"
+            className="w-4 h-4 rounded cursor-pointer accent-indigo-600"
+          />
+        </td>
+      )}
+
       {/* Title */}
       <td className="py-3 px-4">
         <button type="button" onClick={() => onView(task)}
@@ -224,7 +239,7 @@ function TaskRow({ task, onEdit, onDelete, onView, onStatusChange }: {
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
-export function TaskListView({ tasks, onEdit, onDelete, onView, onStatusChange }: TaskListViewProps) {
+export function TaskListView({ tasks, onEdit, onDelete, onView, onStatusChange, selectedTaskIds, onSelectTask }: TaskListViewProps) {
   const [sortCol, setSortCol] = useState<SortCol>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -264,6 +279,15 @@ export function TaskListView({ tasks, onEdit, onDelete, onView, onStatusChange }
         <table className="w-full">
           <thead>
             <tr className="border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50">
+              {onSelectTask && (
+                <th className="py-3 pl-4 pr-2 w-8">
+                  <input type="checkbox" title="Pilih semua"
+                    checked={sorted.length > 0 && sorted.every((t) => selectedTaskIds?.has(t.id))}
+                    onChange={(e) => sorted.forEach((t) => onSelectTask(t.id, e.target.checked))}
+                    className="w-4 h-4 rounded cursor-pointer accent-indigo-600"
+                  />
+                </th>
+              )}
               {headers.map(({ col, label, className }) => (
                 <th key={col}
                   className={`py-3 px-4 text-left ${className ?? ""}`}>
@@ -289,6 +313,8 @@ export function TaskListView({ tasks, onEdit, onDelete, onView, onStatusChange }
                   onDelete={onDelete}
                   onView={onView}
                   onStatusChange={onStatusChange}
+                  selected={selectedTaskIds?.has(task.id)}
+                  onSelect={onSelectTask}
                 />
               ))}
             </AnimatePresence>

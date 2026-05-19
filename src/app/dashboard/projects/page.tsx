@@ -32,6 +32,8 @@ const STATUS_FILTERS: { value: ProjectStatus | "ALL"; label: string }[] = [
 
 function sortProjects(projects: ProjectListItem[], sortBy: SortKey): ProjectListItem[] {
   return [...projects].sort((a, b) => {
+    // Pinned projects always float to the top
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
     switch (sortBy) {
       case "newest":    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case "oldest":    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -61,6 +63,10 @@ export default function ProjectsPage() {
   const [filterStatus, setFilterStatus] = useState<ProjectStatus | "ALL">("ALL");
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
+
+  const handlePinToggle = (id: string, pinned: boolean) => {
+    setProjects((prev) => prev.map((p) => p.id === id ? { ...p, pinned } : p));
+  };
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -233,6 +239,7 @@ export default function ProjectsPage() {
                     project={project}
                     onEdit={setEditingProject}
                     onDeleted={(id) => setProjects((prev) => prev.filter((p) => p.id !== id))}
+                    onPinToggle={handlePinToggle}
                   />
                 </motion.div>
               ))}

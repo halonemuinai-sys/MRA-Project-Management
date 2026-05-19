@@ -42,6 +42,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const prevAssigneeId = task.assigneeId;
 
+  // Collect changes for activity log before applying
+  const activityEntries: { action: string; oldValue: string | null; newValue: string | null }[] = [];
+  if (parsed.data.status && parsed.data.status !== task.status) {
+    activityEntries.push({ action: "STATUS", oldValue: task.status, newValue: parsed.data.status });
+  }
+  if (parsed.data.priority && parsed.data.priority !== task.priority) {
+    activityEntries.push({ action: "PRIORITY", oldValue: task.priority, newValue: parsed.data.priority });
+  }
+  if (parsed.data.title && parsed.data.title !== task.title) {
+    activityEntries.push({ action: "TITLE", oldValue: task.title, newValue: parsed.data.title });
+  }
+  if ("assigneeId" in parsed.data && parsed.data.assigneeId !== task.assigneeId) {
+    activityEntries.push({ action: "ASSIGNEE", oldValue: task.assigneeId ?? null, newValue: parsed.data.assigneeId ?? null });
+  }
+
   const updated = await prisma.task.update({
     where: { id },
     data: {
@@ -55,6 +70,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       project: { select: { name: true } },
     },
   });
+
+  // Write activity logs
+  if (activityEntries.length > 0) {
+    await prisma.activityLog.createMany({
+      data: activityEntries.map((e) => ({
+        taskId: id,
+        userId: user.id,
+        action: e.action,
+        oldValue: e.oldValue,
+        newValue: e.newValue,
+      })),
+    });
+  }
 
   // Notify new assignee if changed
   const newAssigneeId = parsed.data.assigneeId;

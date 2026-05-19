@@ -11,6 +11,7 @@ export interface ProjectListItem {
   name: string;
   description: string | null;
   status: ProjectStatus;
+  pinned: boolean;
   deadline: string | null;
   owner: ProjectUser;
   _count: { tasks: number; members: number };

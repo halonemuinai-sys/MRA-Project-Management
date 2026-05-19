@@ -53,6 +53,7 @@ model User {
   projectMembers ProjectMember[]
   comments       Comment[]
   notifications  Notification[]
+  activityLogs   ActivityLog[]
 
   @@map("users")
 }
@@ -73,6 +74,7 @@ model Project {
   name        String
   description String?         @db.Text
   status      ProjectStatus   @default(ACTIVE)
+  pinned      Boolean         @default(false)
   deadline    DateTime?
   ownerId     String          @map("owner_id")
   owner       User            @relation("OwnedProjects", fields: [ownerId], references: [id])
@@ -85,19 +87,20 @@ model Project {
 }
 
 model Task {
-  id          String     @id @default(cuid())
-  title       String
-  description String?    @db.Text
-  status      TaskStatus @default(TODO)
-  priority    Priority   @default(MEDIUM)
-  dueDate     DateTime?  @map("due_date")
-  projectId   String     @map("project_id")
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assigneeId  String?    @map("assignee_id")
-  assignee    User?      @relation("AssignedTasks", fields: [assigneeId], references: [id])
-  comments    Comment[]
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  id           String        @id @default(cuid())
+  title        String
+  description  String?       @db.Text
+  status       TaskStatus    @default(TODO)
+  priority     Priority      @default(MEDIUM)
+  dueDate      DateTime?     @map("due_date")
+  projectId    String        @map("project_id")
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assigneeId   String?       @map("assignee_id")
+  assignee     User?         @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  comments     Comment[]
+  activityLogs ActivityLog[]
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
   @@map("tasks")
 }
@@ -140,6 +143,20 @@ model Notification {
   createdAt DateTime         @default(now()) @map("created_at")
 
   @@map("notifications")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  taskId    String   @map("task_id")
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  oldValue  String?  @map("old_value")
+  newValue  String?  @map("new_value")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("activity_logs")
 }
 
 // ─── Enums ─────────────────────────────────────────────────────────────────────

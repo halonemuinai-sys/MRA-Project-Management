@@ -13,9 +13,11 @@ interface TaskCardProps {
   onView: (task: KanbanTask) => void;
   onDragStart: (e: React.DragEvent, taskId: string) => void;
   onDragEnd: (e: React.DragEvent) => void;
+  selected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
 }
 
-export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDragStart, onDragEnd }: TaskCardProps) {
+export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDragStart, onDragEnd, selected, onSelect }: TaskCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [isOverdue, setIsOverdue] = useState(false);
@@ -26,13 +28,32 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, task.id)}
-      onDragEnd={onDragEnd}
-      className="group relative bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 shadow-sm hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing active:shadow-xl active:scale-[1.01]"
+      draggable={!onSelect}
+      onDragStart={(e) => !onSelect && onDragStart(e, task.id)}
+      onDragEnd={(e) => !onSelect && onDragEnd(e)}
+      className={`group relative bg-white dark:bg-neutral-800 rounded-xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
+        selected
+          ? "border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-400/40 bg-indigo-50/30 dark:bg-indigo-500/5"
+          : "border-neutral-200 dark:border-neutral-700 hover:border-indigo-300 dark:hover:border-indigo-600 cursor-grab active:cursor-grabbing active:shadow-xl active:scale-[1.01]"
+      }`}
     >
+      {/* Checkbox for bulk selection */}
+      {onSelect && (
+        <div className="absolute top-3 left-3 z-10"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={(e) => onSelect(task.id, e.target.checked)}
+            title="Pilih tugas"
+            className="w-4 h-4 rounded cursor-pointer accent-indigo-600"
+          />
+        </div>
+      )}
+
       {/* Menu */}
-      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className={`absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity ${onSelect ? "z-10" : ""}`}>
         <div className="relative">
           <button type="button" onClick={() => setShowMenu((v) => !v)} title="Opsi tugas"
             className="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors">
@@ -92,24 +113,26 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
         )}
       </AnimatePresence>
 
-      {/* Priority */}
-      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full mb-2.5 ${PRIORITY_STYLES[task.priority]}`}>
-        <Flag className="w-2.5 h-2.5" />{task.priority}
-      </span>
+      {/* Priority + checkbox row */}
+      <div className={`flex items-center gap-2 mb-2.5 ${onSelect ? "pl-6" : ""}`}>
+        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${PRIORITY_STYLES[task.priority]}`}>
+          <Flag className="w-2.5 h-2.5" />{task.priority}
+        </span>
+      </div>
 
       {/* Title */}
-      <p className={`text-sm font-semibold leading-snug pr-6 ${task.status === "DONE"
+      <p className={`text-sm font-semibold leading-snug pr-6 ${onSelect ? "pl-6" : ""} ${task.status === "DONE"
         ? "line-through text-neutral-400"
         : "text-neutral-900 dark:text-white"}`}>
         {task.title}
       </p>
 
       {task.description && (
-        <p className="text-xs text-neutral-400 mt-1.5 line-clamp-2">{task.description}</p>
+        <p className={`text-xs text-neutral-400 mt-1.5 line-clamp-2 ${onSelect ? "pl-6" : ""}`}>{task.description}</p>
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-700">
+      <div className={`flex items-center justify-between mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-700 ${onSelect ? "pl-6" : ""}`}>
         {task.assignee ? (
           <div className="flex items-center gap-1.5">
             <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">

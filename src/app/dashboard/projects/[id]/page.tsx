@@ -8,6 +8,7 @@ import { Plus, Clock, Users, CheckCircle2, AlertCircle, Loader2, LayoutGrid, Lis
 import Link from "next/link";
 
 import { KanbanTask, KanbanProject, KanbanMember, TaskStatus, COLUMNS } from "@/frontend/components/kanban/types";
+import { MarkdownRenderer } from "@/frontend/components/ui/MarkdownRenderer";
 import { Breadcrumb } from "@/frontend/components/layout/Breadcrumb";
 import { KanbanColumn } from "@/frontend/components/kanban/KanbanColumn";
 import { AddTaskModal } from "@/frontend/components/kanban/AddTaskModal";
@@ -16,6 +17,7 @@ import { TaskDetailModal } from "@/frontend/components/kanban/TaskDetailModal";
 import { MembersPanel } from "@/frontend/components/kanban/MembersPanel";
 import { KanbanFilterBar, KanbanFilters } from "@/frontend/components/kanban/KanbanFilterBar";
 import { TaskListView } from "@/frontend/components/kanban/TaskListView";
+import { BulkActionBar } from "@/frontend/components/kanban/BulkActionBar";
 
 const PROJECT_STATUS_STYLES = {
   ACTIVE:    "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
@@ -48,6 +50,17 @@ export default function ProjectDetailPage() {
     sortBy: "newest",
   });
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+
+  const toggleTask = (id: string, sel: boolean) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (sel) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedTaskIds(new Set());
 
   const fetchProject = useCallback(async () => {
     const [projRes, meRes] = await Promise.all([
@@ -141,6 +154,26 @@ export default function ProjectDetailPage() {
   const handleTaskUpdated = (updated: KanbanTask) => {
     setTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t));
     toast(`Tugas "${updated.title}" berhasil diperbarui.`, "success");
+  };
+
+  const handleBulkStatusChange = async (status: TaskStatus) => {
+    const ids = [...selectedTaskIds];
+    await Promise.all(ids.map((id) =>
+      fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+    ));
+    setTasks((prev) => prev.map((t) => selectedTaskIds.has(t.id) ? { ...t, status } : t));
+    toast(`${ids.length} tugas diperbarui ke ${STATUS_LABELS[status]}.`, "success");
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = [...selectedTaskIds];
+    await Promise.all(ids.map((id) => fetch(`/api/tasks/${id}`, { method: "DELETE" })));
+    setTasks((prev) => prev.filter((t) => !selectedTaskIds.has(t.id)));
+    toast(`${ids.length} tugas dihapus.`, "info");
   };
 
   // ── Render guards ──────────────────────────────────────────────────────────
@@ -251,7 +284,9 @@ export default function ProjectDetailPage() {
                 </span>
               </div>
               {project.description && (
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1.5 max-w-xl">{project.description}</p>
+                <div className="mt-1.5 max-w-xl">
+                  <MarkdownRenderer content={project.description} className="text-neutral-500 dark:text-neutral-400 text-sm" />
+                </div>
               )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -377,6 +412,18 @@ export default function ProjectDetailPage() {
           </p>
         )}
 
+        {/* Bulk Action Bar */}
+        <AnimatePresence>
+          {selectedTaskIds.size > 0 && (
+            <BulkActionBar
+              selectedCount={selectedTaskIds.size}
+              onClearSelection={clearSelection}
+              onBulkStatusChange={handleBulkStatusChange}
+              onBulkDelete={handleBulkDelete}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Kanban View */}
         {viewMode === "kanban" && (
           <div className="overflow-x-auto pb-4">
@@ -397,6 +444,8 @@ export default function ProjectDetailPage() {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
+                  selectedTaskIds={selectedTaskIds}
+                  onSelectTask={toggleTask}
                 />
               ))}
             </div>
@@ -411,6 +460,8 @@ export default function ProjectDetailPage() {
             onDelete={handleDeleteTask}
             onView={setViewingTask}
             onStatusChange={handleStatusChange}
+            selectedTaskIds={selectedTaskIds}
+            onSelectTask={toggleTask}
           />
         )}
       </div>
