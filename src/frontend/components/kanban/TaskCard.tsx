@@ -28,20 +28,23 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
 
   return (
     <div
-      draggable={!onSelect}
-      onDragStart={(e) => !onSelect && onDragStart(e, task.id)}
-      onDragEnd={(e) => !onSelect && onDragEnd(e)}
-      className={`group relative bg-white dark:bg-neutral-800 rounded-xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
+      draggable
+      onDragStart={(e) => onDragStart(e, task.id)}
+      onDragEnd={onDragEnd}
+      className={`group relative bg-white dark:bg-neutral-800 rounded-xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing active:shadow-xl active:scale-[1.01] ${
         selected
           ? "border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-400/40 bg-indigo-50/30 dark:bg-indigo-500/5"
-          : "border-neutral-200 dark:border-neutral-700 hover:border-indigo-300 dark:hover:border-indigo-600 cursor-grab active:cursor-grabbing active:shadow-xl active:scale-[1.01]"
+          : "border-neutral-200 dark:border-neutral-700 hover:border-indigo-300 dark:hover:border-indigo-600"
       }`}
     >
-      {/* Checkbox for bulk selection */}
+      {/* Checkbox for bulk selection — stopPropagation prevents drag from firing on the checkbox */}
       {onSelect && (
-        <div className="absolute top-3 left-3 z-10"
+        <div
+          className="absolute top-3 left-3 z-10"
+          draggable={false}
           onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}>
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           <input
             type="checkbox"
             checked={!!selected}
