@@ -9,15 +9,47 @@ export interface KanbanUser {
   email: string | null;
 }
 
+export interface KanbanSubtask {
+  id: string;
+  title: string;
+  completed: boolean;
+  order: number;
+  createdAt: string;
+}
+
+export interface KanbanLabel {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface KanbanDependency {
+  id: string;
+  dependsOn: { id: string; title: string; status: TaskStatus; priority: Priority };
+}
+
+export interface KanbanTimeEntry {
+  id: string;
+  startedAt: string;
+  endedAt: string | null;
+  minutes: number | null;
+  note: string | null;
+  user: KanbanUser;
+}
+
 export interface KanbanTask {
   id: string;
   title: string;
   description: string | null;
   status: TaskStatus;
   priority: Priority;
+  startDate: string | null;
   dueDate: string | null;
   assignee: KanbanUser | null;
   createdAt: string;
+  subtasks?: KanbanSubtask[];
+  labels?: KanbanLabel[];
+  _count?: { subtasks: number; completedSubtasks?: number };
 }
 
 export interface KanbanComment {

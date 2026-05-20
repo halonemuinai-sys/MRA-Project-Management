@@ -15,7 +15,7 @@ const SORT_CYCLE: ColumnSort[] = ["default", "priority", "due_asc", "due_desc"];
 
 const SORT_LABELS: Record<ColumnSort, { label: string; icon: React.ElementType }> = {
   default:   { label: "Default",         icon: ArrowUpDown },
-  priority:  { label: "Prioritas ↓",     icon: Flag },
+  priority:  { label: "Priority ↓",       icon: Flag },
   due_asc:   { label: "Deadline ↑",      icon: Calendar },
   due_desc:  { label: "Deadline ↓",      icon: Clock },
 };
@@ -96,7 +96,7 @@ export function KanbanColumn({
           <div className="relative">
             <button type="button"
               onClick={() => setShowSortMenu((v) => !v)}
-              title={`Urutan: ${SORT_LABELS[columnSort].label}`}
+              title={`Sort: ${SORT_LABELS[columnSort].label}`}
               className={`p-1 rounded-lg transition-colors ${
                 isCustomSort
                   ? "text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10"
@@ -115,7 +115,7 @@ export function KanbanColumn({
                   onMouseLeave={() => setShowSortMenu(false)}
                 >
                   <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider px-3 pt-2.5 pb-1">
-                    Urutan kolom
+                    Column Sort
                   </p>
                   {SORT_CYCLE.map((s) => {
                     const Icon = SORT_LABELS[s].icon;
@@ -139,7 +139,7 @@ export function KanbanColumn({
 
           {/* Add task button */}
           <button type="button" onClick={() => onAddTask(column.key)}
-            title={`Tambah tugas ke ${column.label}`}
+            title={`Add task to ${column.label}`}
             className="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-indigo-500 transition-colors">
             <Plus className="w-4 h-4" />
           </button>
@@ -164,11 +164,11 @@ export function KanbanColumn({
               : "border-neutral-200 dark:border-neutral-700"
           }`}>
             {isDragOver ? (
-              <p className={`text-sm font-bold ${column.dragText}`}>⬇ Drop di sini!</p>
+              <p className={`text-sm font-bold ${column.dragText}`}>⬇ Drop here!</p>
             ) : (
               <>
                 <FolderKanban className="w-7 h-7 text-neutral-300 dark:text-neutral-600 mb-1.5" />
-                <p className="text-xs text-neutral-400 dark:text-neutral-500">Tidak ada tugas</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-500">No tasks</p>
               </>
             )}
           </div>

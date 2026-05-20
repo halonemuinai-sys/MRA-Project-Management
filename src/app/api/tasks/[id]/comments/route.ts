@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/backend/lib/prisma";
+import { sendEmail, emailMentioned } from "@/lib/email";
 import { z } from "zod";
 
 const commentSchema = z.object({
@@ -36,7 +37,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { project: { include: { members: true } }, assignee: true },
+    include: {
+      project: { include: { members: { include: { user: { select: { id: true, name: true, email: true } } } } } },
+      assignee: true,
+    },
   });
   if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
 
@@ -46,16 +50,56 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   });
 
   // Notify assignee if different from commenter
+  const notifyIds = new Set<string>();
   if (task.assigneeId && task.assigneeId !== user.id) {
-    await prisma.notification.create({
-      data: {
-        userId: task.assigneeId,
-        type: "COMMENT_ADDED",
-        title: "Komentar baru",
-        message: `${user.name ?? user.email} mengomentari tugas "${task.title}"`,
+    notifyIds.add(task.assigneeId);
+  }
+
+  // Parse @mentions — match @name against project member names/emails
+  const mentionPattern = /@([\w.\-]+)/g;
+  const matches = [...parsed.data.content.matchAll(mentionPattern)].map((m) => m[1].toLowerCase());
+  if (matches.length > 0) {
+    for (const member of task.project.members) {
+      if (member.userId === user.id) continue;
+      const nameMatch = member.user.name?.toLowerCase().replace(/\s+/g, "");
+      const emailMatch = member.user.email?.toLowerCase().split("@")[0];
+      if (matches.some((m) => m === nameMatch || m === emailMatch)) {
+        notifyIds.add(member.userId);
+      }
+    }
+  }
+
+  if (notifyIds.size > 0) {
+    await prisma.notification.createMany({
+      data: [...notifyIds].map((userId) => ({
+        userId,
+        type: "COMMENT_ADDED" as const,
+        title: "Disebut dalam komentar",
+        message: `${user.name ?? user.email} menyebut Anda di tugas "${task.title}"`,
         link: `/dashboard/projects/${task.projectId}`,
-      },
+      })),
+      skipDuplicates: true,
     });
+
+    // Email ke setiap yang di-notify (fire-and-forget)
+    const notifyUsers = await prisma.user.findMany({
+      where: { id: { in: [...notifyIds] } },
+      select: { name: true, email: true },
+    });
+    const taskUrl = `${process.env.NEXTAUTH_URL}/dashboard/projects/${task.projectId}`;
+    for (const recipient of notifyUsers) {
+      if (!recipient.email) continue;
+      const { subject, html } = emailMentioned({
+        to: recipient.email,
+        mentionedName: recipient.name ?? recipient.email,
+        mentionerName: user.name ?? user.email ?? "Seseorang",
+        taskTitle: task.title,
+        projectName: task.project.name,
+        commentPreview: parsed.data.content,
+        taskUrl,
+      });
+      sendEmail(recipient.email, subject, html).catch((e) => console.error("[email] mention:", e));
+    }
   }
 
   return NextResponse.json(comment, { status: 201 });

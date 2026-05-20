@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MoreHorizontal, Flag, Calendar, Trash2, Pencil, ChevronDown, MessageSquare } from "lucide-react";
+import { MoreHorizontal, Flag, Calendar, Trash2, Pencil, ChevronDown, MessageSquare, ListChecks } from "lucide-react";
 import { KanbanTask, TaskStatus, COLUMNS, PRIORITY_STYLES } from "./types";
 
 interface TaskCardProps {
@@ -49,7 +49,7 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
             type="checkbox"
             checked={!!selected}
             onChange={(e) => onSelect(task.id, e.target.checked)}
-            title="Pilih tugas"
+            title="Select task"
             className="w-4 h-4 rounded cursor-pointer accent-indigo-600"
           />
         </div>
@@ -58,7 +58,7 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
       {/* Menu */}
       <div className={`absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity ${onSelect ? "z-10" : ""}`}>
         <div className="relative">
-          <button type="button" onClick={() => setShowMenu((v) => !v)} title="Opsi tugas"
+          <button type="button" onClick={() => setShowMenu((v) => !v)} title="Task options"
             className="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors">
             <MoreHorizontal className="w-4 h-4" />
           </button>
@@ -74,7 +74,7 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
               >
                 <button type="button" onClick={() => { onView(task); setShowMenu(false); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-                  <MessageSquare className="w-3.5 h-3.5" /> Lihat Detail
+                  <MessageSquare className="w-3.5 h-3.5" /> View Detail
                 </button>
                 <button type="button" onClick={() => { onEdit(task); setShowMenu(false); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
@@ -82,11 +82,11 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
                 </button>
                 <button type="button" onClick={() => { setShowStatusPicker(true); setShowMenu(false); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-                  <ChevronDown className="w-3.5 h-3.5" /> Ubah Status
+                  <ChevronDown className="w-3.5 h-3.5" /> Change Status
                 </button>
                 <button type="button" onClick={() => { onDelete(task.id); setShowMenu(false); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
                 </button>
               </motion.div>
             )}
@@ -99,7 +99,7 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
         {showStatusPicker && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-10 bg-white dark:bg-neutral-800 rounded-xl p-3 flex flex-col gap-1.5">
-            <p className="text-xs font-semibold text-neutral-500 mb-1">Pindah ke:</p>
+            <p className="text-xs font-semibold text-neutral-500 mb-1">Move to:</p>
             {COLUMNS.map((col) => (
               <button key={col.key} type="button"
                 onClick={() => { onStatusChange(task.id, col.key); setShowStatusPicker(false); }}
@@ -111,7 +111,7 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
               </button>
             ))}
             <button type="button" onClick={() => setShowStatusPicker(false)}
-              className="text-xs text-neutral-400 hover:text-neutral-600 mt-1 text-center">Batal</button>
+              className="text-xs text-neutral-400 hover:text-neutral-600 mt-1 text-center">Cancel</button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -134,6 +134,31 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
         <p className={`text-xs text-neutral-400 mt-1.5 line-clamp-2 ${onSelect ? "pl-6" : ""}`}>{task.description}</p>
       )}
 
+      {/* Labels */}
+      {task.labels && task.labels.length > 0 && (
+        <div className={`flex flex-wrap gap-1 mt-2 ${onSelect ? "pl-6" : ""}`}>
+          {task.labels.map((l) => (
+            <span key={l.id} className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white"
+              style={{ backgroundColor: l.color }}>
+              {l.name}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Subtask progress */}
+      {task._count && task._count.subtasks > 0 && (
+        <div className={`mt-2 ${onSelect ? "pl-6" : ""}`}>
+          <div className="flex items-center justify-between text-[10px] text-neutral-400 mb-0.5">
+            <span className="flex items-center gap-1"><ListChecks className="w-3 h-3" />{task._count.completedSubtasks ?? 0}/{task._count.subtasks}</span>
+          </div>
+          <div className="h-1 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+            <div className="h-full bg-indigo-400 rounded-full transition-all"
+              style={{ width: `${Math.round(((task._count.completedSubtasks ?? 0) / task._count.subtasks) * 100)}%` }} />
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className={`flex items-center justify-between mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-700 ${onSelect ? "pl-6" : ""}`}>
         {task.assignee ? (
@@ -152,7 +177,7 @@ export function TaskCard({ task, onStatusChange, onDelete, onEdit, onView, onDra
           <span suppressHydrationWarning
             className={`flex items-center gap-1 text-xs font-medium ${isOverdue ? "text-red-500" : "text-neutral-400"}`}>
             <Calendar className="w-3 h-3" />
-            {new Date(task.dueDate).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+            {new Date(task.dueDate).toLocaleDateString("en-US", { day: "numeric", month: "short" })}
           </span>
         )}
       </div>

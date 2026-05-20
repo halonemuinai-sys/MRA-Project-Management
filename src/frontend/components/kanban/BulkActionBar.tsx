@@ -41,7 +41,7 @@ export function BulkActionBar({ selectedCount, onClearSelection, onBulkStatusCha
       className="flex items-center gap-3 px-4 py-3 bg-indigo-600 text-white rounded-2xl shadow-lg"
     >
       <span className="text-sm font-semibold flex-shrink-0">
-        {selectedCount} tugas dipilih
+        {selectedCount} task(s) selected
       </span>
 
       <div className="flex items-center gap-2 flex-1">
@@ -51,7 +51,7 @@ export function BulkActionBar({ selectedCount, onClearSelection, onBulkStatusCha
             onClick={() => { setShowStatusMenu((v) => !v); setConfirmDelete(false); }}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-60">
-            Ubah Status
+            Change Status
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showStatusMenu ? "rotate-180" : ""}`} />
           </button>
 
@@ -80,14 +80,14 @@ export function BulkActionBar({ selectedCount, onClearSelection, onBulkStatusCha
         {/* Delete */}
         {confirmDelete ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs">Hapus semua?</span>
+            <span className="text-xs">Delete all?</span>
             <button type="button" onClick={handleDelete} disabled={loading}
               className="px-2.5 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg text-xs font-medium transition-colors disabled:opacity-60">
-              Ya, Hapus
+              Yes, Delete
             </button>
             <button type="button" onClick={() => setConfirmDelete(false)}
               className="px-2.5 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition-colors">
-              Batal
+              Cancel
             </button>
           </div>
         ) : (
@@ -96,7 +96,7 @@ export function BulkActionBar({ selectedCount, onClearSelection, onBulkStatusCha
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-red-500/80 rounded-lg text-xs font-medium transition-colors disabled:opacity-60">
             <Trash2 className="w-3.5 h-3.5" />
-            Hapus
+            Delete
           </button>
         )}
 
@@ -104,7 +104,7 @@ export function BulkActionBar({ selectedCount, onClearSelection, onBulkStatusCha
       </div>
 
       {/* Clear */}
-      <button type="button" onClick={onClearSelection} title="Batal pilih"
+      <button type="button" onClick={onClearSelection} title="Clear selection"
         className="p-1.5 rounded-lg hover:bg-white/20 transition-colors flex-shrink-0">
         <X className="w-4 h-4" />
       </button>

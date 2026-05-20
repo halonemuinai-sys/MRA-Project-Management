@@ -84,13 +84,13 @@ function SearchBox() {
           value={query}
           onChange={handleChange}
           onFocus={() => results && setOpen(true)}
-          placeholder="Cari proyek atau tugas..."
-          title="Pencarian global"
-          className="block w-full pl-10 pr-8 py-2 border border-neutral-200 dark:border-neutral-800 rounded-full bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all"
+          placeholder="Search projects or tasks..."
+          title="Global search"
+          className="block w-full pl-10 pr-8 py-2 border border-neutral-200 dark:border-white/[0.08] rounded-full bg-white dark:bg-white/[0.04] text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 sm:text-sm transition-all"
         />
         {query && (
           <button type="button" onClick={() => { setQuery(""); setOpen(false); setResults(null); }}
-            title="Hapus pencarian"
+            title="Clear search"
             className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-neutral-600">
             <X className="w-3.5 h-3.5" />
           </button>
@@ -107,13 +107,13 @@ function SearchBox() {
           >
             {!hasResults ? (
               <p className="text-sm text-neutral-400 text-center py-6">
-                {query.length < 2 ? "Ketik minimal 2 karakter" : "Tidak ada hasil ditemukan"}
+                {query.length < 2 ? "Type at least 2 characters" : "No results found"}
               </p>
             ) : (
               <div className="max-h-80 overflow-y-auto">
                 {results.projects.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider px-4 pt-3 pb-1">Proyek</p>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider px-4 pt-3 pb-1">Projects</p>
                     {results.projects.map((p) => (
                       <button key={p.id} type="button"
                         onClick={() => handleSelect(`/dashboard/projects/${p.id}`)}
@@ -121,7 +121,7 @@ function SearchBox() {
                         <FolderKanban className="w-4 h-4 text-indigo-500 flex-shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">{p.name}</p>
-                          <p className="text-xs text-neutral-400">{p._count.tasks} tugas</p>
+                          <p className="text-xs text-neutral-400">{p._count.tasks} task(s)</p>
                         </div>
                       </button>
                     ))}
@@ -129,7 +129,7 @@ function SearchBox() {
                 )}
                 {results.tasks.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider px-4 pt-3 pb-1">Tugas</p>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider px-4 pt-3 pb-1">Tasks</p>
                     {results.tasks.map((t) => (
                       <button key={t.id} type="button"
                         onClick={() => handleSelect(`/dashboard/projects/${t.project.id}`)}
@@ -196,9 +196,9 @@ function NotificationBell() {
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" aria-label="Notifikasi" title="Notifikasi"
+      <button type="button" aria-label="Notifications" title="Notifications"
         onClick={() => { setOpen((v) => !v); if (!open) fetchNotifs(); }}
-        className="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 rounded-full relative transition-all">
+        className="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 bg-neutral-100 dark:bg-white/[0.06] hover:bg-neutral-200 dark:hover:bg-white/[0.10] rounded-full relative transition-all">
         <Bell className="w-5 h-5" />
         {unread > 0 && (
           <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-neutral-950 text-white text-[9px] font-bold flex items-center justify-center">
@@ -217,11 +217,11 @@ function NotificationBell() {
             className="absolute right-0 mt-2 w-80 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden z-50"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
-              <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Notifikasi</h3>
+              <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Notifications</h3>
               {unread > 0 && (
                 <button type="button" onClick={markAllRead}
                   className="text-xs text-indigo-500 hover:text-indigo-400 font-medium transition-colors">
-                  Tandai semua dibaca
+                  Mark all as read
                 </button>
               )}
             </div>
@@ -234,7 +234,7 @@ function NotificationBell() {
               ) : notifs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center px-4">
                   <Bell className="w-8 h-8 text-neutral-300 dark:text-neutral-600 mb-2" />
-                  <p className="text-sm text-neutral-400">Tidak ada notifikasi</p>
+                  <p className="text-sm text-neutral-400">No notifications</p>
                 </div>
               ) : (
                 notifs.map((n) => (
@@ -247,7 +247,7 @@ function NotificationBell() {
                         <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{n.title}</p>
                         <p className="text-xs text-neutral-400 mt-0.5">{n.message}</p>
                         <p suppressHydrationWarning className="text-[10px] text-neutral-300 dark:text-neutral-600 mt-1">
-                          {new Date(n.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          {new Date(n.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
                     </div>
@@ -284,9 +284,9 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   }, []);
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 sticky top-0 z-30 transition-colors">
+    <header className="h-16 flex items-center justify-between px-6 bg-slate-100/80 dark:bg-[#030712]/80 backdrop-blur-md border-b border-neutral-200 dark:border-white/[0.06] sticky top-0 z-30 transition-colors">
       <div className="flex-1 flex items-center gap-3">
-        <button type="button" onClick={onMenuClick} title="Buka menu"
+        <button type="button" onClick={onMenuClick} title="Open menu"
           className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors md:hidden">
           <Menu className="w-5 h-5" />
         </button>
@@ -297,7 +297,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         {mounted && (
           <button type="button" aria-label="Toggle Theme"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 rounded-full transition-all">
+            className="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 bg-neutral-100 dark:bg-white/[0.06] hover:bg-neutral-200 dark:hover:bg-white/[0.10] rounded-full transition-all">
             {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
         )}
@@ -305,9 +305,9 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         <NotificationBell />
 
         <div ref={dropdownRef} className="relative">
-          <button type="button" aria-label="Profil Pengguna" title="Profil Pengguna"
+          <button type="button" aria-label="User Profile" title="User Profile"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 p-1 pl-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors">
+            className="flex items-center gap-2 p-1 pl-3 bg-neutral-100 dark:bg-white/[0.06] border border-neutral-200 dark:border-white/[0.08] rounded-full hover:bg-neutral-200 dark:hover:bg-white/[0.10] transition-colors">
             <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300 hidden md:block">
               {session?.user?.name || session?.user?.email?.split("@")[0] || "Administrator"}
             </span>
@@ -328,17 +328,17 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
                 <div className="py-1">
                   <div className="px-4 py-2 border-b border-neutral-200 dark:border-neutral-800">
                     <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">
-                      {session?.user?.email || "Belum Login"}
+                      {session?.user?.email || "Not Logged In"}
                     </p>
                   </div>
                   <a href="/dashboard/settings"
                     className="w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2">
-                    <User className="w-4 h-4" /> Pengaturan
+                    <User className="w-4 h-4" /> Settings
                   </a>
                   <button type="button"
                     onClick={() => signOut({ callbackUrl: "/login" })}
                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2">
-                    <LogOut className="w-4 h-4" /> Keluar
+                    <LogOut className="w-4 h-4" /> Sign Out
                   </button>
                 </div>
               </motion.div>

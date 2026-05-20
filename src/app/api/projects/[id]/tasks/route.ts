@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/backend/lib/prisma";
+import { broadcast } from "@/backend/lib/broadcaster";
 import { z } from "zod";
 
 const createTaskSchema = z.object({
@@ -82,6 +83,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       assignee: { select: { id: true, name: true, email: true } },
     },
   });
+
+  broadcast(projectId, "task:created", task, user.id);
 
   return NextResponse.json(task, { status: 201 });
 }

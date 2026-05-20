@@ -15,7 +15,9 @@ export interface ProjectListItem {
   deadline: string | null;
   owner: ProjectUser;
   _count: { tasks: number; members: number };
+  doneTasksCount: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export const STATUS_STYLES: Record<ProjectStatus, string> = {
@@ -26,5 +28,5 @@ export const STATUS_STYLES: Record<ProjectStatus, string> = {
 };
 
 export const STATUS_LABELS: Record<ProjectStatus, string> = {
-  ACTIVE: "Aktif", ON_HOLD: "Ditahan", COMPLETED: "Selesai", ARCHIVED: "Diarsipkan",
+  ACTIVE: "Active", ON_HOLD: "On Hold", COMPLETED: "Completed", ARCHIVED: "Archived",
 };

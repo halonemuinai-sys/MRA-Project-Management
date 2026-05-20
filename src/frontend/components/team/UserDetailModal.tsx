@@ -62,7 +62,7 @@ const PRIORITY_STYLES: Record<string, string> = {
 };
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "Aktif", ON_HOLD: "Ditahan", COMPLETED: "Selesai", ARCHIVED: "Diarsipkan",
+  ACTIVE: "Active", ON_HOLD: "On Hold", COMPLETED: "Completed", ARCHIVED: "Archived",
 };
 
 const AVATAR_GRADIENTS = [
@@ -108,7 +108,7 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
         className="relative w-full max-w-lg bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 flex flex-col max-h-[85vh]">
 
         {/* Close */}
-        <button type="button" onClick={onClose} title="Tutup"
+        <button type="button" onClick={onClose} title="Close"
           className="absolute top-4 right-4 z-10 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 transition-colors">
           <X className="w-4 h-4" />
         </button>
@@ -118,7 +118,7 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
             <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
           </div>
         ) : !user ? (
-          <div className="flex items-center justify-center py-20 text-neutral-400 text-sm">User tidak ditemukan.</div>
+          <div className="flex items-center justify-center py-20 text-neutral-400 text-sm">User not found.</div>
         ) : (
           <>
             {/* Profile header */}
@@ -129,7 +129,7 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-lg font-bold text-neutral-900 dark:text-white truncate">
-                    {user.name ?? <span className="text-neutral-400 italic">Tanpa nama</span>}
+                    {user.name ?? <span className="text-neutral-400 italic">No name</span>}
                   </h2>
                   <p className="flex items-center gap-1.5 text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
                     <Mail className="w-3.5 h-3.5 flex-shrink-0" />
@@ -137,7 +137,7 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
                   </p>
                   <p suppressHydrationWarning className="flex items-center gap-1.5 text-xs text-neutral-400 mt-0.5">
                     <Calendar className="w-3 h-3 flex-shrink-0" />
-                    Bergabung {new Date(user.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                    Joined {new Date(user.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}
                   </p>
                 </div>
               </div>
@@ -145,9 +145,9 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
               {/* Stats row */}
               <div className="grid grid-cols-3 gap-2 mb-5">
                 {[
-                  { label: "Proyek Milik",  value: user._count.ownedProjects,  icon: FolderKanban, color: "text-indigo-500" },
-                  { label: "Tugas Aktif",   value: user.assignedTasks.length,  icon: CheckCircle2, color: "text-emerald-500" },
-                  { label: "Partisipasi",   value: user._count.projectMembers, icon: Users,        color: "text-amber-500" },
+                  { label: "Owned Projects", value: user._count.ownedProjects,  icon: FolderKanban, color: "text-indigo-500" },
+                  { label: "Active Tasks",   value: user.assignedTasks.length,  icon: CheckCircle2, color: "text-emerald-500" },
+                  { label: "Memberships",    value: user._count.projectMembers, icon: Users,        color: "text-amber-500" },
                 ].map((s) => (
                   <div key={s.label} className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-3 text-center">
                     <s.icon className={`w-4 h-4 mx-auto mb-1 ${s.color}`} />
@@ -166,7 +166,7 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
                       : "border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
                   }`}>
                   <FolderKanban className="w-3.5 h-3.5" />
-                  Proyek ({user.projectMembers.length})
+                  Projects ({user.projectMembers.length})
                 </button>
                 <button type="button" onClick={() => setTab("tasks")}
                   className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 transition-all ${
@@ -175,7 +175,7 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
                       : "border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
                   }`}>
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  Tugas Aktif ({user.assignedTasks.length})
+                  Active Tasks ({user.assignedTasks.length})
                 </button>
               </div>
             </div>
@@ -185,7 +185,7 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
               {tab === "projects" && (
                 <div className="space-y-2">
                   {user.projectMembers.length === 0 ? (
-                    <p className="text-sm text-neutral-400 text-center py-6">Belum bergabung ke proyek manapun.</p>
+                    <p className="text-sm text-neutral-400 text-center py-6">Not yet a member of any project.</p>
                   ) : (
                     user.projectMembers.map((m) => (
                       <div key={m.project.id}
@@ -215,7 +215,7 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
               {tab === "tasks" && (
                 <div className="space-y-2">
                   {user.assignedTasks.length === 0 ? (
-                    <p className="text-sm text-neutral-400 text-center py-6">Tidak ada tugas aktif.</p>
+                    <p className="text-sm text-neutral-400 text-center py-6">No active tasks.</p>
                   ) : (
                     user.assignedTasks.map((t) => (
                       <div key={t.id}
@@ -233,7 +233,7 @@ export function UserDetailModal({ userId, gradientIndex, onClose }: UserDetailMo
                           </span>
                           {t.dueDate && (
                             <span suppressHydrationWarning className="text-[10px] text-neutral-400">
-                              {new Date(t.dueDate).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                              {new Date(t.dueDate).toLocaleDateString("en-US", { day: "numeric", month: "short" })}
                             </span>
                           )}
                         </div>

@@ -22,6 +22,7 @@ export async function GET() {
       id: true,
       name: true,
       email: true,
+      role: true,
       createdAt: true,
       _count: {
         select: {
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   const { name, email, password } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return NextResponse.json({ error: "Email sudah terdaftar." }, { status: 409 });
+  if (existing) return NextResponse.json({ error: "Email already registered." }, { status: 409 });
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({

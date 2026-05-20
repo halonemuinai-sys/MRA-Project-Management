@@ -43,6 +43,9 @@ model User {
   emailVerified DateTime? @map("email_verified")
   image         String?
   password      String?
+  role              UserRole  @default(USER)
+  twoFactorSecret   String?   @map("two_factor_secret")
+  twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
   accounts      Account[]
   sessions      Session[]
   createdAt     DateTime  @default(now()) @map("created_at")
@@ -54,6 +57,9 @@ model User {
   comments       Comment[]
   notifications  Notification[]
   activityLogs   ActivityLog[]
+  attachments    Attachment[]
+  timeEntries    TimeEntry[]
+  templates      ProjectTemplate[]
 
   @@map("users")
 }
@@ -80,6 +86,7 @@ model Project {
   owner       User            @relation("OwnedProjects", fields: [ownerId], references: [id])
   members     ProjectMember[]
   tasks       Task[]
+  labels      Label[]
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
@@ -92,6 +99,7 @@ model Task {
   description  String?       @db.Text
   status       TaskStatus    @default(TODO)
   priority     Priority      @default(MEDIUM)
+  startDate    DateTime?     @map("start_date")
   dueDate      DateTime?     @map("due_date")
   projectId    String        @map("project_id")
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -99,10 +107,77 @@ model Task {
   assignee     User?         @relation("AssignedTasks", fields: [assigneeId], references: [id])
   comments     Comment[]
   activityLogs ActivityLog[]
+  subtasks     Subtask[]
+  labels       TaskLabel[]
+  attachments  Attachment[]
+  timeEntries  TimeEntry[]
+  dependencies TaskDependency[] @relation("DependencyTask")
+  dependents   TaskDependency[] @relation("DependencyDependsOn")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
   @@map("tasks")
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String   @map("original_name")
+  url          String
+  size         Int
+  mimetype     String
+  taskId       String   @map("task_id")
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedById String   @map("uploaded_by_id")
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("attachments")
+}
+
+model Subtask {
+  id        String   @id @default(cuid())
+  title     String
+  completed Boolean  @default(false)
+  order     Int      @default(0)
+  taskId    String   @map("task_id")
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("subtasks")
+}
+
+model Label {
+  id        String      @id @default(cuid())
+  name      String
+  color     String      @default("#6366f1")
+  projectId String      @map("project_id")
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     TaskLabel[]
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@unique([projectId, name])
+  @@map("labels")
+}
+
+model TaskLabel {
+  taskId  String @map("task_id")
+  labelId String @map("label_id")
+  task    Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+  @@map("task_labels")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_reset_tokens")
 }
 
 model ProjectMember {
@@ -159,7 +234,64 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+model ProjectTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  tasks       Json     @default("[]")
+  labels      Json     @default("[]")
+  usageCount  Int      @default(0) @map("usage_count")
+  createdById String   @map("created_by_id")
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("project_templates")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("email_verification_tokens")
+}
+
+model TaskDependency {
+  id          String   @id @default(cuid())
+  taskId      String   @map("task_id")
+  dependsOnId String   @map("depends_on_id")
+  task        Task     @relation("DependencyTask",     fields: [taskId],      references: [id], onDelete: Cascade)
+  dependsOn   Task     @relation("DependencyDependsOn", fields: [dependsOnId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([taskId, dependsOnId])
+  @@map("task_dependencies")
+}
+
+model TimeEntry {
+  id        String    @id @default(cuid())
+  taskId    String    @map("task_id")
+  userId    String    @map("user_id")
+  startedAt DateTime  @default(now()) @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+  minutes   Int?
+  note      String?
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("time_entries")
+}
+
 // ─── Enums ─────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+}
 
 enum ProjectStatus {
   ACTIVE

@@ -29,11 +29,18 @@ export async function GET() {
     include: {
       owner: { select: { id: true, name: true, email: true } },
       _count: { select: { tasks: true, members: true } },
+      tasks: {
+        where: { status: "DONE" },
+        select: { id: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(projects);
+  return NextResponse.json(projects.map(({ tasks, ...p }) => ({
+    ...p,
+    doneTasksCount: tasks.length,
+  })));
 }
 
 export async function POST(req: NextRequest) {

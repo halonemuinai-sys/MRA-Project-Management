@@ -4,10 +4,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useToast } from "@/frontend/lib/toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, Users, CheckCircle2, AlertCircle, Loader2, LayoutGrid, List } from "lucide-react";
+import { Plus, Clock, Users, CheckCircle2, AlertCircle, Loader2, LayoutGrid, List, CalendarDays, GanttChart } from "lucide-react";
 import Link from "next/link";
 
 import { KanbanTask, KanbanProject, KanbanMember, TaskStatus, Priority, COLUMNS } from "@/frontend/components/kanban/types";
+import { useProjectSync } from "@/frontend/hooks/useProjectSync";
+import { useKeyboardShortcuts } from "@/frontend/hooks/useKeyboardShortcuts";
+import { ShortcutsModal } from "@/frontend/components/ui/ShortcutsModal";
 import { MarkdownRenderer } from "@/frontend/components/ui/MarkdownRenderer";
 import { Breadcrumb } from "@/frontend/components/layout/Breadcrumb";
 import { KanbanColumn } from "@/frontend/components/kanban/KanbanColumn";
@@ -18,6 +21,8 @@ import { MembersPanel } from "@/frontend/components/kanban/MembersPanel";
 import { KanbanFilterBar, KanbanFilters } from "@/frontend/components/kanban/KanbanFilterBar";
 import { TaskListView } from "@/frontend/components/kanban/TaskListView";
 import { BulkActionBar } from "@/frontend/components/kanban/BulkActionBar";
+import { CalendarView } from "@/frontend/components/kanban/CalendarView";
+import { GanttView } from "@/frontend/components/kanban/GanttView";
 
 // ─── Module-level constants ─────────────────────────────────────────────────────
 
@@ -29,7 +34,7 @@ const PROJECT_STATUS_STYLES = {
 } as const;
 
 const PROJECT_STATUS_LABELS = {
-  ACTIVE: "Aktif", ON_HOLD: "Ditahan", COMPLETED: "Selesai", ARCHIVED: "Diarsipkan",
+  ACTIVE: "Active", ON_HOLD: "On Hold", COMPLETED: "Completed", ARCHIVED: "Archived",
 } as const;
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -55,13 +60,14 @@ export default function ProjectDetailPage() {
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
   const [viewingTask, setViewingTask] = useState<KanbanTask | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "list" | "calendar" | "gantt">("kanban");
   const [filters, setFilters] = useState<KanbanFilters>({
     priority: "ALL",
     assigneeId: "ALL",
     sortBy: "newest",
   });
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Deadline / overdue — kept in state to avoid hydration mismatch
   const [overdueTasks, setOverdueTasks] = useState<KanbanTask[]>([]);
@@ -107,8 +113,17 @@ export default function ProjectDetailPage() {
     ]);
     if (projRes.status === 404) { setNotFound(true); return; }
     if (!projRes.ok) return;
-    const data: KanbanProject = await projRes.json();
+    const raw = await projRes.json();
     const me = meRes.ok ? await meRes.json() : null;
+    // Normalize TaskLabel[] → KanbanLabel[]
+    const data: KanbanProject = {
+      ...raw,
+      tasks: raw.tasks.map((t: KanbanTask & { labels?: { label: { id: string; name: string; color: string } }[]; _count?: { subtasks: number } }) => ({
+        ...t,
+        labels: (t.labels ?? []).map((tl: { label: { id: string; name: string; color: string } }) => tl.label),
+        _count: t._count,
+      })),
+    };
     setProject(data);
     setTasks(data.tasks);
     setMembers(data.members);
@@ -118,13 +133,31 @@ export default function ProjectDetailPage() {
 
   useEffect(() => { fetchProject(); }, [fetchProject]);
 
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    { key: "k", description: "Kanban view", ignoreInInputs: true, handler: () => setViewMode("kanban") },
+    { key: "l", description: "List view",   ignoreInInputs: true, handler: () => setViewMode("list") },
+    { key: "c", description: "Calendar view", ignoreInInputs: true, handler: () => setViewMode("calendar") },
+    { key: "g", description: "Gantt view",  ignoreInInputs: true, handler: () => setViewMode("gantt") },
+    { key: "n", description: "Create new task", ignoreInInputs: true, handler: () => setAddTaskStatus("TODO") },
+    { key: "?", description: "Show shortcuts", ignoreInInputs: true, handler: () => setShowShortcuts(true) },
+    { key: "Escape", description: "Close shortcuts", handler: () => setShowShortcuts(false) },
+  ]);
+
+  // Real-time sync via SSE — other users' changes reflected instantly
+  useProjectSync(id, {
+    onTaskCreated: (task) => setTasks((prev) => prev.some((t) => t.id === task.id) ? prev : [task, ...prev]),
+    onTaskUpdated: (task) => setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, ...task } : t)),
+    onTaskDeleted: ({ id: taskId }) => setTasks((prev) => prev.filter((t) => t.id !== taskId)),
+  });
+
   useEffect(() => {
     const now = new Date();
     setOverdueTasks(tasks.filter((t) => t.dueDate && new Date(t.dueDate) < now && t.status !== "DONE"));
     const deadline = project?.deadline;
     if (deadline) {
       setDeadlineDays(Math.ceil((new Date(deadline).getTime() - now.getTime()) / 86400000));
-      setDeadlineStr(new Date(deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }));
+      setDeadlineStr(new Date(deadline).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }));
     } else {
       setDeadlineDays(null);
       setDeadlineStr("–");
@@ -178,10 +211,10 @@ export default function ProjectDetailPage() {
       body: JSON.stringify({ status: newStatus }),
     });
     if (res.ok) {
-      toast(`Tugas dipindah ke ${STATUS_LABELS[newStatus]}.`, "success");
+      toast(`Task moved to ${STATUS_LABELS[newStatus]}.`, "success");
     } else {
       setTasks((p) => p.map((t) => t.id === taskId ? { ...t, status: prev!.status } : t));
-      toast("Gagal memperbarui status.", "error");
+      toast("Failed to update status.", "error");
     }
   };
 
@@ -190,21 +223,21 @@ export default function ProjectDetailPage() {
     setTasks((p) => p.filter((t) => t.id !== taskId));
     const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
     if (res.ok) {
-      toast(`Tugas "${deleted?.title}" dihapus.`, "info");
+      toast(`Task "${deleted?.title}" deleted.`, "info");
     } else {
       if (deleted) setTasks((p) => [deleted, ...p]);
-      toast("Gagal menghapus tugas.", "error");
+      toast("Failed to delete task.", "error");
     }
   };
 
   const handleTaskCreated = (task: KanbanTask) => {
     setTasks((p) => [task, ...p]);
-    toast(`Tugas "${task.title}" berhasil dibuat.`, "success");
+    toast(`Task "${task.title}" created successfully.`, "success");
   };
 
   const handleTaskUpdated = (updated: KanbanTask) => {
     setTasks((p) => p.map((t) => t.id === updated.id ? updated : t));
-    toast(`Tugas "${updated.title}" berhasil diperbarui.`, "success");
+    toast(`Task "${updated.title}" updated successfully.`, "success");
   };
 
   const handleBulkStatusChange = async (status: TaskStatus) => {
@@ -217,14 +250,14 @@ export default function ProjectDetailPage() {
       })
     ));
     setTasks((p) => p.map((t) => selectedTaskIds.has(t.id) ? { ...t, status } : t));
-    toast(`${ids.length} tugas diperbarui ke ${STATUS_LABELS[status]}.`, "success");
+    toast(`${ids.length} task(s) updated to ${STATUS_LABELS[status]}.`, "success");
   };
 
   const handleBulkDelete = async () => {
     const ids = [...selectedTaskIds];
     await Promise.all(ids.map((tid) => fetch(`/api/tasks/${tid}`, { method: "DELETE" })));
     setTasks((p) => p.filter((t) => !selectedTaskIds.has(t.id)));
-    toast(`${ids.length} tugas dihapus.`, "info");
+    toast(`${ids.length} task(s) deleted.`, "info");
   };
 
   // ── Render guards (all hooks above this line) ─────────────────────────────────
@@ -232,8 +265,8 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-full py-24">
         <AlertCircle className="w-12 h-12 text-neutral-300 mb-4" />
-        <h2 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300">Proyek tidak ditemukan</h2>
-        <Link href="/dashboard/projects" className="mt-4 text-sm text-indigo-500 hover:underline">Kembali ke daftar proyek</Link>
+        <h2 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300">Project not found</h2>
+        <Link href="/dashboard/projects" className="mt-4 text-sm text-indigo-500 hover:underline">Back to project list</Link>
       </div>
     );
   }
@@ -257,6 +290,7 @@ export default function ProjectDetailPage() {
   return (
     <>
       <AnimatePresence>
+        {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
         {addTaskStatus && (
           <AddTaskModal projectId={id} members={members} initialStatus={addTaskStatus}
             onClose={() => setAddTaskStatus(null)} onCreated={handleTaskCreated} />
@@ -266,8 +300,10 @@ export default function ProjectDetailPage() {
             onClose={() => setEditingTask(null)} onUpdated={handleTaskUpdated} />
         )}
         {viewingTask && (
-          <TaskDetailModal task={viewingTask} currentUserId={currentUserId}
-            onClose={() => setViewingTask(null)} />
+          <TaskDetailModal task={viewingTask} currentUserId={currentUserId} projectId={id}
+            members={members}
+            onClose={() => setViewingTask(null)}
+            onTaskUpdated={handleTaskUpdated} />
         )}
       </AnimatePresence>
 
@@ -275,7 +311,7 @@ export default function ProjectDetailPage() {
         {/* Breadcrumb + Header */}
         <div>
           <Breadcrumb items={[
-            { label: "Proyek", href: "/dashboard/projects" },
+            { label: "Projects", href: "/dashboard/projects" },
             { label: project.name },
           ]} />
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -306,10 +342,22 @@ export default function ProjectDetailPage() {
                     : "text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"}`}>
                   <List className="w-4 h-4" />
                 </button>
+                <button type="button" onClick={() => setViewMode("calendar")} title="Calendar view"
+                  className={`p-2 rounded-lg transition-all ${viewMode === "calendar"
+                    ? "bg-white dark:bg-neutral-700 shadow-sm text-indigo-600 dark:text-indigo-400"
+                    : "text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"}`}>
+                  <CalendarDays className="w-4 h-4" />
+                </button>
+                <button type="button" onClick={() => setViewMode("gantt")} title="Gantt view"
+                  className={`p-2 rounded-lg transition-all ${viewMode === "gantt"
+                    ? "bg-white dark:bg-neutral-700 shadow-sm text-indigo-600 dark:text-indigo-400"
+                    : "text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"}`}>
+                  <GanttChart className="w-4 h-4" />
+                </button>
               </div>
               <button type="button" onClick={() => setAddTaskStatus("TODO")}
                 className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors shadow-sm">
-                <Plus className="w-4 h-4" /> Tambah Tugas
+                <Plus className="w-4 h-4" /> Add Task
               </button>
             </div>
           </div>
@@ -318,9 +366,9 @@ export default function ProjectDetailPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total Tugas",  value: tasks.length,                        icon: CheckCircle2, color: "text-indigo-500" },
+            { label: "Total Tasks",  value: tasks.length,                        icon: CheckCircle2, color: "text-indigo-500" },
             { label: "In Progress",  value: tasksByStatus("IN_PROGRESS").length, icon: Loader2,      color: "text-amber-500" },
-            { label: "Anggota",      value: project._count.members,              icon: Users,        color: "text-emerald-500" },
+            { label: "Members",      value: project._count.members,              icon: Users,        color: "text-emerald-500" },
             { label: "Deadline",     value: deadlineStr,                         icon: Clock,        color: "text-rose-500" },
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -342,7 +390,7 @@ export default function ProjectDetailPage() {
                 className="flex items-center gap-3 p-3.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl">
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
                 <p className="text-sm font-medium text-red-700 dark:text-red-400">
-                  Deadline proyek sudah lewat {Math.abs(deadlineDays)} hari yang lalu.
+                  Project deadline was {Math.abs(deadlineDays)} day(s) ago.
                 </p>
               </motion.div>
             )}
@@ -351,7 +399,7 @@ export default function ProjectDetailPage() {
                 className="flex items-center gap-3 p-3.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl">
                 <Clock className="w-4 h-4 text-amber-500 flex-shrink-0" />
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                  Deadline proyek {deadlineDays === 0 ? "hari ini!" : `${deadlineDays} hari lagi.`}
+                  Project deadline {deadlineDays === 0 ? "is today!" : `in ${deadlineDays} day(s).`}
                 </p>
               </motion.div>
             )}
@@ -360,8 +408,8 @@ export default function ProjectDetailPage() {
                 className="flex items-center gap-3 p-3.5 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl">
                 <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
                 <p className="text-sm font-medium text-orange-700 dark:text-orange-400">
-                  {overdueTasks.length} tugas terlambat: {overdueTasks.slice(0, 2).map((t) => `"${t.title}"`).join(", ")}
-                  {overdueTasks.length > 2 && ` dan ${overdueTasks.length - 2} lainnya.`}
+                  {overdueTasks.length} overdue task(s): {overdueTasks.slice(0, 2).map((t) => `"${t.title}"`).join(", ")}
+                  {overdueTasks.length > 2 && ` and ${overdueTasks.length - 2} more.`}
                 </p>
               </motion.div>
             )}
@@ -372,7 +420,7 @@ export default function ProjectDetailPage() {
         {tasks.length > 0 && (
           <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Progress Keseluruhan</span>
+              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Overall Progress</span>
               <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{progress}%</span>
             </div>
             <div className="h-2 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
@@ -380,7 +428,7 @@ export default function ProjectDetailPage() {
                 transition={{ duration: 0.6, ease: "easeOut" }}
                 className="h-full bg-indigo-600 rounded-full" />
             </div>
-            <p className="text-xs text-neutral-400 mt-1.5">{doneCount} dari {tasks.length} tugas selesai</p>
+            <p className="text-xs text-neutral-400 mt-1.5">{doneCount} of {tasks.length} task(s) completed</p>
           </div>
         )}
 
@@ -406,9 +454,9 @@ export default function ProjectDetailPage() {
 
         {filteredTasks.length < tasks.length && (
           <p className="text-sm text-neutral-500">
-            Menampilkan{" "}
+            Showing{" "}
             <span className="font-semibold text-neutral-700 dark:text-neutral-300">{filteredTasks.length}</span>
-            {" "}dari {tasks.length} tugas
+            {" "}of {tasks.length} task(s)
           </p>
         )}
 
@@ -463,6 +511,16 @@ export default function ProjectDetailPage() {
             selectedTaskIds={selectedTaskIds}
             onSelectTask={toggleTask}
           />
+        )}
+
+        {/* Calendar View */}
+        {viewMode === "calendar" && (
+          <CalendarView tasks={filteredTasks} onView={setViewingTask} />
+        )}
+
+        {/* Gantt View */}
+        {viewMode === "gantt" && (
+          <GanttView tasks={filteredTasks} onView={setViewingTask} projectName={project.name} />
         )}
       </div>
     </>

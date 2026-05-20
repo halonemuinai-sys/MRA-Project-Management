@@ -30,11 +30,11 @@ export function InviteUserModal({ onClose, onInvited }: InviteUserModalProps) {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!email) e.email = "Email wajib diisi.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Format email tidak valid.";
-    if (!password) e.password = "Password wajib diisi.";
-    else if (password.length < 6) e.password = "Password minimal 6 karakter.";
-    if (password !== confirm) e.confirm = "Konfirmasi password tidak cocok.";
+    if (!email) e.email = "Email is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Invalid email format.";
+    if (!password) e.password = "Password is required.";
+    else if (password.length < 6) e.password = "Password must be at least 6 characters.";
+    if (password !== confirm) e.confirm = "Passwords do not match.";
     return e;
   };
 
@@ -54,16 +54,16 @@ export function InviteUserModal({ onClose, onInvited }: InviteUserModalProps) {
     setLoading(false);
 
     if (res.status === 409) {
-      setErrors({ email: "Email sudah terdaftar di sistem." });
+      setErrors({ email: "This email is already registered in the system." });
       return;
     }
     if (!res.ok) {
-      toast("Gagal mendaftarkan anggota.", "error");
+      toast("Failed to register member.", "error");
       return;
     }
 
     const newUser: TeamMember = await res.json();
-    toast(`Anggota "${newUser.name ?? newUser.email}" berhasil didaftarkan.`, "success");
+    toast(`Member "${newUser.name ?? newUser.email}" registered successfully.`, "success");
     onInvited(newUser);
     onClose();
   };
@@ -84,11 +84,11 @@ export function InviteUserModal({ onClose, onInvited }: InviteUserModalProps) {
               <UserPlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-neutral-900 dark:text-white">Daftarkan Anggota</h2>
-              <p className="text-xs text-neutral-400">Buat akun baru untuk anggota tim</p>
+              <h2 className="text-base font-bold text-neutral-900 dark:text-white">Register Member</h2>
+              <p className="text-xs text-neutral-400">Create a new account for a team member</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} title="Tutup"
+          <button type="button" onClick={onClose} title="Close"
             className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 transition-colors">
             <X className="w-4 h-4" />
           </button>
@@ -99,13 +99,13 @@ export function InviteUserModal({ onClose, onInvited }: InviteUserModalProps) {
           {/* Name */}
           <div>
             <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-              Nama <span className="font-normal text-neutral-400">(opsional)</span>
+              Name <span className="font-normal text-neutral-400">(optional)</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nama lengkap"
+              placeholder="Full name"
               className="w-full px-3.5 py-2.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
             />
           </div>
@@ -137,7 +137,7 @@ export function InviteUserModal({ onClose, onInvited }: InviteUserModalProps) {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: "" })); }}
-                placeholder="Min. 6 karakter"
+                placeholder="Min. 6 characters"
                 className={`w-full px-3.5 py-2.5 pr-10 bg-neutral-50 dark:bg-neutral-800 border rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${
                   errors.password ? "border-red-400 focus:ring-red-400/50" : "border-neutral-200 dark:border-neutral-700 focus:border-indigo-500"
                 }`}
@@ -153,14 +153,14 @@ export function InviteUserModal({ onClose, onInvited }: InviteUserModalProps) {
           {/* Confirm Password */}
           <div>
             <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-              Konfirmasi Password <span className="text-red-500">*</span>
+              Confirm Password <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={confirm}
                 onChange={(e) => { setConfirm(e.target.value); setErrors((p) => ({ ...p, confirm: "" })); }}
-                placeholder="Ulangi password"
+                placeholder="Repeat password"
                 className={`w-full px-3.5 py-2.5 pr-10 bg-neutral-50 dark:bg-neutral-800 border rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${
                   errors.confirm ? "border-red-400 focus:ring-red-400/50" : "border-neutral-200 dark:border-neutral-700 focus:border-indigo-500"
                 }`}
@@ -176,12 +176,12 @@ export function InviteUserModal({ onClose, onInvited }: InviteUserModalProps) {
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose}
               className="flex-1 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-              Batal
+              Cancel
             </button>
             <button type="submit" disabled={loading}
               className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              {loading ? "Mendaftarkan..." : "Daftarkan"}
+              {loading ? "Registering..." : "Register"}
             </button>
           </div>
         </form>

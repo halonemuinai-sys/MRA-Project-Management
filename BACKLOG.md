@@ -11,11 +11,11 @@
 |---|-------|-----------|--------|
 | 1 | **Filter & Sort Tasks di Kanban** | Filter by priority, assignee, due date. Sort by deadline/created. | `[x]` |
 | 2 | **Filter & Sort Projects** | Filter by status (Aktif/Selesai/Arsip), sort by deadline/nama/tanggal. | `[x]` |
-| 3 | **Subtask / Checklist** | Task bisa dipecah jadi item-item kecil dengan checkbox progress. | `[ ]` |
-| 4 | **Task Labels / Tags** | Label custom per task (contoh: "bug", "feature", "design") dengan warna. | `[ ]` |
+| 3 | **Subtask / Checklist** | Task bisa dipecah jadi item-item kecil dengan checkbox progress. | `[x]` |
+| 4 | **Task Labels / Tags** | Label custom per task (contoh: "bug", "feature", "design") dengan warna. | `[x]` |
 | 5 | **Edit Komentar** | Komentar hanya bisa dihapus, tidak bisa diedit setelah dikirim. | `[x]` |
-| 6 | **Forgot Password** | Halaman `/forgot-password` dan alur reset password via email. | `[ ]` |
-| 7 | **Kalender View** | Tampilan task berdasarkan tanggal/deadline dalam format kalender bulanan. | `[ ]` |
+| 6 | **Forgot Password** | Halaman `/forgot-password` dan alur reset password via email. | `[x]` |
+| 7 | **Kalender View** | Tampilan task berdasarkan tanggal/deadline dalam format kalender bulanan. | `[x]` |
 
 ---
 
@@ -24,12 +24,12 @@
 | # | Fitur | Deskripsi | Status |
 |---|-------|-----------|--------|
 | 8 | **List View Task** | Tampilan tabel/list alternatif selain Kanban, dengan kolom sortable. | `[x]` |
-| 9 | **Markdown di Deskripsi** | Render bold/italic/heading/code di deskripsi task dan project. | `[ ]` |
-| 10 | **@Mention di Komentar** | Tag anggota dengan `@nama` dalam komentar, trigger notifikasi. | `[ ]` |
-| 11 | **Attachment / Upload File** | Lampirkan file atau gambar ke task (S3/Cloudinary/Vercel Blob). | `[ ]` |
-| 12 | **Activity Log per Task** | Riwayat perubahan ("X mengubah status dari TODO → DONE pada 10 Jan 14:30"). | `[ ]` |
-| 13 | **Bulk Action Task** | Pilih beberapa task sekaligus untuk pindah status, assign, atau delete. | `[ ]` |
-| 14 | **Pinned / Starred Project** | Tandai proyek favorit, tampil di bagian atas daftar. | `[ ]` |
+| 9 | **Markdown di Deskripsi** | Render bold/italic/heading/code di deskripsi task dan project. | `[x]` |
+| 10 | **@Mention di Komentar** | Tag anggota dengan `@nama` dalam komentar, trigger notifikasi. | `[x]` |
+| 11 | **Attachment / Upload File** | Lampirkan file atau gambar ke task (S3/Cloudinary/Vercel Blob). | `[x]` |
+| 12 | **Activity Log per Task** | Riwayat perubahan ("X mengubah status dari TODO → DONE pada 10 Jan 14:30"). | `[x]` |
+| 13 | **Bulk Action Task** | Pilih beberapa task sekaligus untuk pindah status, assign, atau delete. | `[x]` |
+| 14 | **Pinned / Starred Project** | Tandai proyek favorit, tampil di bagian atas daftar. | `[x]` |
 | 15 | **Breadcrumb Navigation** | Navigasi hierarki: Dashboard → Projects → [Nama Proyek]. | `[x]` |
 
 ---

@@ -14,7 +14,7 @@ export interface KanbanFilters {
 }
 
 const PRIORITY_OPTIONS: { value: Priority | "ALL"; label: string; dot: string }[] = [
-  { value: "ALL",      label: "Semua Prioritas", dot: "bg-neutral-300" },
+  { value: "ALL",      label: "All Priorities",  dot: "bg-neutral-300" },
   { value: "CRITICAL", label: "Critical",         dot: "bg-red-500" },
   { value: "HIGH",     label: "High",             dot: "bg-orange-500" },
   { value: "MEDIUM",   label: "Medium",           dot: "bg-amber-500" },
@@ -22,12 +22,12 @@ const PRIORITY_OPTIONS: { value: Priority | "ALL"; label: string; dot: string }[
 ];
 
 const SORT_OPTIONS: { value: TaskSortKey; label: string }[] = [
-  { value: "newest",        label: "Terbaru dibuat" },
-  { value: "oldest",        label: "Terlama dibuat" },
-  { value: "due_asc",       label: "Deadline Terdekat" },
-  { value: "due_desc",      label: "Deadline Terjauh" },
-  { value: "priority_high", label: "Prioritas Tertinggi" },
-  { value: "priority_low",  label: "Prioritas Terendah" },
+  { value: "newest",        label: "Newest Created" },
+  { value: "oldest",        label: "Oldest Created" },
+  { value: "due_asc",       label: "Deadline Nearest" },
+  { value: "due_desc",      label: "Deadline Farthest" },
+  { value: "priority_high", label: "Highest Priority" },
+  { value: "priority_low",  label: "Lowest Priority" },
 ];
 
 const PRIORITY_CHIP_STYLES: Record<Priority | "ALL", string> = {
@@ -59,12 +59,12 @@ export function KanbanFilterBar({ filters, members, totalCount, filteredCount, o
   const [showAssignee, setShowAssignee] = useState(false);
 
   const isFiltered = filters.priority !== "ALL" || filters.assigneeId !== "ALL" || filters.sortBy !== "newest";
-  const activeSortLabel = SORT_OPTIONS.find((o) => o.value === filters.sortBy)?.label ?? "Terbaru";
+  const activeSortLabel = SORT_OPTIONS.find((o) => o.value === filters.sortBy)?.label ?? "Newest";
   const activeAssigneeName = filters.assigneeId === "ALL"
-    ? "Semua Assignee"
+    ? "All Assignees"
     : (members.find((m) => m.user.id === filters.assigneeId)?.user.name
       ?? members.find((m) => m.user.id === filters.assigneeId)?.user.email
-      ?? "Semua");
+      ?? "All");
 
   const set = (patch: Partial<KanbanFilters>) => onChange({ ...filters, ...patch });
 
@@ -119,7 +119,7 @@ export function KanbanFilterBar({ filters, members, totalCount, filteredCount, o
                       ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold"
                       : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                   }`}>
-                  Semua Assignee
+                  All Assignees
                 </button>
                 {members.map((m) => (
                   <button key={m.user.id} type="button"
@@ -162,7 +162,7 @@ export function KanbanFilterBar({ filters, members, totalCount, filteredCount, o
                 className="absolute right-0 top-11 z-20 w-52 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-xl overflow-hidden"
                 onMouseLeave={() => setShowSort(false)}
               >
-                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider px-4 pt-3 pb-1">Urutkan</p>
+                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider px-4 pt-3 pb-1">Sort By</p>
                 {SORT_OPTIONS.map((opt) => (
                   <button key={opt.value} type="button"
                     onClick={() => { set({ sortBy: opt.value }); setShowSort(false); }}
@@ -192,7 +192,7 @@ export function KanbanFilterBar({ filters, members, totalCount, filteredCount, o
       {/* Active filter info */}
       {isFiltered && filteredCount < totalCount && (
         <p className="text-xs text-neutral-400 sm:hidden">
-          {filteredCount} dari {totalCount} tugas
+          {filteredCount} of {totalCount} tasks
         </p>
       )}
     </div>

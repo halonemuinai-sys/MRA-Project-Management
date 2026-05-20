@@ -23,9 +23,9 @@ export default function GlobalError({
         </div>
 
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tight">Terjadi Kesalahan</h1>
+          <h1 className="text-4xl font-black text-white tracking-tight">Something Went Wrong</h1>
           <p className="text-sm text-neutral-500 mt-3 leading-relaxed">
-            Sesuatu yang tidak terduga terjadi. Tim kami sudah diberitahu.
+            An unexpected error occurred. Our team has been notified.
           </p>
           {error.digest && (
             <p className="text-xs text-neutral-600 mt-2 font-mono">
@@ -40,14 +40,14 @@ export default function GlobalError({
             className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
-            Coba Lagi
+            Try Again
           </button>
           <Link
             href="/dashboard"
             className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-200 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Kembali ke Dashboard
+            Back to Dashboard
           </Link>
         </div>
       </div>

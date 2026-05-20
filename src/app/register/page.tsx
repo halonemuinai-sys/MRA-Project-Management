@@ -10,9 +10,9 @@ import { Loader2, Mail, Lock, User as UserIcon, ArrowRight, ShieldCheck } from "
 import Link from "next/link";
 
 const registerSchema = z.object({
-  name: z.string().min(3, "Nama minimal 3 karakter"),
-  email: z.string().email("Format email tidak valid"),
-  password: z.string().min(6, "Password minimal 6 karakter"),
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -47,12 +47,12 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        setErrorMsg(errorData.message || "Gagal membuat akun.");
+        setErrorMsg(errorData.message || "Failed to create account.");
       } else {
         router.push("/login?registered=true");
       }
-    } catch (error) {
-      setErrorMsg("Terjadi kesalahan pada server.");
+    } catch {
+      setErrorMsg("A server error occurred.");
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +64,7 @@ export default function RegisterPage() {
       <div className="hidden lg:flex flex-1 relative bg-neutral-900 overflow-hidden items-center justify-center">
         <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-600/30 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px]" />
-        
+
         <div className="relative z-10 flex flex-col items-center justify-center text-center p-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -73,10 +73,10 @@ export default function RegisterPage() {
           >
             <ShieldCheck className="w-24 h-24 text-purple-500 mb-8 mx-auto drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-6">
-              Akses Internal <br/> MRA Retail
+              MRA Retail <br/> Internal Access
             </h1>
             <p className="text-neutral-400 text-lg max-w-md mx-auto leading-relaxed">
-              Daftarkan diri Anda untuk mengakses platform operasional dengan keamanan enterprise.
+              Register your account to access the operational platform with enterprise-grade security.
             </p>
           </motion.div>
         </div>
@@ -85,22 +85,22 @@ export default function RegisterPage() {
 
       {/* Right Section - Register Form */}
       <div className="flex-1 flex items-center justify-center p-8 sm:p-12 md:p-24 relative z-10">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="w-full max-w-md space-y-8"
         >
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-bold text-white tracking-tight">Buat Akun Baru</h2>
-            <p className="text-neutral-400 mt-2">Daftarkan kredensial Anda ke dalam sistem MRA</p>
+            <h2 className="text-3xl font-bold text-white tracking-tight">Create Account</h2>
+            <p className="text-neutral-400 mt-2">Register your credentials in the MRA system</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-8">
             {errorMsg && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }} 
-                animate={{ opacity: 1, height: 'auto' }} 
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
                 className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-2"
               >
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
@@ -111,7 +111,7 @@ export default function RegisterPage() {
             <div className="space-y-5">
               {/* Name Input */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-neutral-300">Nama Lengkap</label>
+                <label className="text-sm font-medium text-neutral-300">Full Name</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <UserIcon className="h-5 w-5 text-neutral-500 group-focus-within:text-purple-400 transition-colors" />
@@ -128,7 +128,7 @@ export default function RegisterPage() {
 
               {/* Email Input */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-neutral-300">Email Akses</label>
+                <label className="text-sm font-medium text-neutral-300">Email</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-neutral-500 group-focus-within:text-purple-400 transition-colors" />
@@ -145,7 +145,7 @@ export default function RegisterPage() {
 
               {/* Password Input */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-neutral-300">Kata Sandi</label>
+                <label className="text-sm font-medium text-neutral-300">Password</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-neutral-500 group-focus-within:text-purple-400 transition-colors" />
@@ -170,7 +170,7 @@ export default function RegisterPage() {
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  Daftarkan Akun
+                  Create Account
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
@@ -178,9 +178,9 @@ export default function RegisterPage() {
           </form>
 
           <p className="text-center text-sm text-neutral-500 mt-8">
-            Sudah memiliki akses?{' '}
+            Already have access?{' '}
             <Link href="/login" className="font-medium text-purple-400 hover:text-purple-300 transition-colors">
-              Masuk ke Sistem
+              Sign In
             </Link>
           </p>
         </motion.div>

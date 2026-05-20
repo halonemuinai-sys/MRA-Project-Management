@@ -14,9 +14,9 @@ export default function NotFound() {
 
         <div>
           <h1 className="text-6xl font-black text-white tracking-tight">404</h1>
-          <p className="text-xl font-semibold text-neutral-300 mt-2">Halaman tidak ditemukan</p>
+          <p className="text-xl font-semibold text-neutral-300 mt-2">Page not found</p>
           <p className="text-sm text-neutral-500 mt-3 leading-relaxed">
-            Halaman yang Anda cari tidak ada atau sudah dipindahkan.
+            The page you are looking for does not exist or has been moved.
           </p>
         </div>
 
@@ -26,13 +26,13 @@ export default function NotFound() {
             className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Kembali ke Dashboard
+            Back to Dashboard
           </Link>
           <Link
             href="/dashboard/projects"
             className="text-sm text-neutral-400 hover:text-neutral-200 transition-colors"
           >
-            Lihat semua proyek
+            View all projects
           </Link>
         </div>
       </div>

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/backend/lib/prisma";
+import { broadcast } from "@/backend/lib/broadcaster";
+import { sendEmail, emailTaskAssigned } from "@/lib/email";
 import { z } from "zod";
 
 const updateTaskSchema = z.object({
@@ -84,7 +86,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
   }
 
-  // Notify new assignee if changed
+  // Notify + email new assignee if changed
   const newAssigneeId = parsed.data.assigneeId;
   if (newAssigneeId && newAssigneeId !== prevAssigneeId && newAssigneeId !== user.id) {
     await prisma.notification.create({
@@ -96,12 +98,33 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         link: `/dashboard/projects/${task.projectId}`,
       },
     });
+
+    // Send email notification (fire-and-forget)
+    const assignee = await prisma.user.findUnique({
+      where: { id: newAssigneeId },
+      select: { name: true, email: true },
+    });
+    if (assignee?.email) {
+      const { subject, html } = emailTaskAssigned({
+        to: assignee.email,
+        assigneeName: assignee.name ?? assignee.email,
+        assignerName: user.name ?? user.email ?? "Seseorang",
+        taskTitle: updated.title,
+        projectName: updated.project.name,
+        priority: updated.priority,
+        dueDate: updated.dueDate?.toISOString() ?? null,
+        taskUrl: `${process.env.NEXTAUTH_URL}/dashboard/projects/${task.projectId}`,
+      });
+      sendEmail(assignee.email, subject, html).catch((e) => console.error("[email] task assign:", e));
+    }
   }
+
+  broadcast(task.projectId, "task:updated", updated, user.id);
 
   return NextResponse.json(updated);
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -123,5 +146,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   await prisma.task.delete({ where: { id } });
+  broadcast(task.projectId, "task:deleted", { id, projectId: task.projectId }, user.id);
   return NextResponse.json({ success: true });
 }

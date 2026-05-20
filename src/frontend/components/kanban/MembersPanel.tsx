@@ -39,20 +39,20 @@ export function MembersPanel({ projectId, members, ownerId, currentUserId, onMem
     setAdding(false);
     if (!res.ok) {
       const d = await res.json();
-      toast(d.error ?? "Gagal menambah anggota.", "error");
+      toast(d.error ?? "Failed to add member.", "error");
       return;
     }
     const newMember = await res.json();
     onMembersChange([...members, { user: newMember.user as KanbanUser, role: newMember.role }]);
-    toast(`${newMember.user.name ?? newMember.user.email} berhasil ditambahkan.`, "success");
+    toast(`${newMember.user.name ?? newMember.user.email} added successfully.`, "success");
     setEmail(""); setShowForm(false);
   };
 
   const handleRemove = async (userId: string, userName: string) => {
     const res = await fetch(`/api/projects/${projectId}/members/${userId}`, { method: "DELETE" });
-    if (!res.ok) { toast("Gagal menghapus anggota.", "error"); return; }
+    if (!res.ok) { toast("Failed to remove member.", "error"); return; }
     onMembersChange(members.filter((m) => m.user.id !== userId));
-    toast(`${userName} dihapus dari proyek.`, "info");
+    toast(`${userName} removed from project.`, "info");
   };
 
   return (
@@ -60,15 +60,15 @@ export function MembersPanel({ projectId, members, ownerId, currentUserId, onMem
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-indigo-500" />
-          <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Anggota</h3>
+          <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Members</h3>
           <span className="text-xs font-medium text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full">
             {members.length}
           </span>
         </div>
         {isOwner && (
-          <button type="button" onClick={() => setShowForm((v) => !v)} title="Tambah anggota"
+          <button type="button" onClick={() => setShowForm((v) => !v)} title="Add member"
             className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-            <UserPlus className="w-3.5 h-3.5" /> Tambah
+            <UserPlus className="w-3.5 h-3.5" /> Add
           </button>
         )}
       </div>
@@ -79,11 +79,11 @@ export function MembersPanel({ projectId, members, ownerId, currentUserId, onMem
             exit={{ opacity: 0, height: 0 }} onSubmit={handleAdd} className="mb-4 overflow-hidden">
             <div className="flex gap-2">
               <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required
-                placeholder="Email anggota baru" title="Email anggota"
+                placeholder="New member email" title="Member email"
                 className="flex-1 px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all" />
               <button type="submit" disabled={adding}
                 className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-70 flex items-center">
-                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : "Tambah"}
+                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add"}
               </button>
             </div>
           </motion.form>
@@ -113,8 +113,8 @@ export function MembersPanel({ projectId, members, ownerId, currentUserId, onMem
               </span>
               {isOwner && m.user.id !== ownerId && (
                 <button type="button"
-                  onClick={() => handleRemove(m.user.id, m.user.name ?? m.user.email ?? "Anggota")}
-                  title="Hapus anggota"
+                  onClick={() => handleRemove(m.user.id, m.user.name ?? m.user.email ?? "Member")}
+                  title="Remove member"
                   className="p-1 rounded-lg text-neutral-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
                   <X className="w-3.5 h-3.5" />
                 </button>
