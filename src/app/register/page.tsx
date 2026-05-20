@@ -62,7 +62,7 @@ export default function RegisterPage() {
     <div className="min-h-screen w-full flex bg-neutral-950 text-neutral-200 font-sans">
       {/* Left Section - Graphic / Branding */}
       <div className="hidden lg:flex flex-1 relative bg-neutral-900 overflow-hidden items-center justify-center">
-        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-600/30 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-600/30 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px]" />
 
         <div className="relative z-10 flex flex-col items-center justify-center text-center p-12">
@@ -71,7 +71,7 @@ export default function RegisterPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <ShieldCheck className="w-24 h-24 text-purple-500 mb-8 mx-auto drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
+            <ShieldCheck className="w-24 h-24 text-indigo-500 mb-8 mx-auto drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-6">
               MRA Retail <br/> Internal Access
             </h1>
@@ -114,13 +114,13 @@ export default function RegisterPage() {
                 <label className="text-sm font-medium text-neutral-300">Full Name</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <UserIcon className="h-5 w-5 text-neutral-500 group-focus-within:text-purple-400 transition-colors" />
+                    <UserIcon className="h-5 w-5 text-neutral-500 group-focus-within:text-indigo-400 transition-colors" />
                   </div>
                   <input
                     {...register("name")}
                     type="text"
                     placeholder="John Doe"
-                    className="w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all shadow-inner"
+                    className="w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-inner"
                   />
                 </div>
                 {errors.name && <p className="text-red-400 text-xs mt-1 font-medium">{errors.name.message}</p>}
@@ -131,13 +131,13 @@ export default function RegisterPage() {
                 <label className="text-sm font-medium text-neutral-300">Email</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-neutral-500 group-focus-within:text-purple-400 transition-colors" />
+                    <Mail className="h-5 w-5 text-neutral-500 group-focus-within:text-indigo-400 transition-colors" />
                   </div>
                   <input
                     {...register("email")}
                     type="email"
                     placeholder="Enter your email"
-                    className="w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all shadow-inner"
+                    className="w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-inner"
                   />
                 </div>
                 {errors.email && <p className="text-red-400 text-xs mt-1 font-medium">{errors.email.message}</p>}
@@ -148,13 +148,13 @@ export default function RegisterPage() {
                 <label className="text-sm font-medium text-neutral-300">Password</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-neutral-500 group-focus-within:text-purple-400 transition-colors" />
+                    <Lock className="h-5 w-5 text-neutral-500 group-focus-within:text-indigo-400 transition-colors" />
                   </div>
                   <input
                     {...register("password")}
                     type="password"
                     placeholder="••••••••"
-                    className="w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all shadow-inner"
+                    className="w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-inner"
                   />
                 </div>
                 {errors.password && <p className="text-red-400 text-xs mt-1 font-medium">{errors.password.message}</p>}
@@ -164,7 +164,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-bold text-white bg-purple-600 hover:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-950 focus:ring-purple-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)]"
+              className="group relative w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-950 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)]"
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -179,7 +179,7 @@ export default function RegisterPage() {
 
           <p className="text-center text-sm text-neutral-500 mt-8">
             Already have access?{' '}
-            <Link href="/login" className="font-medium text-purple-400 hover:text-purple-300 transition-colors">
+            <Link href="/login" className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
               Sign In
             </Link>
           </p>
