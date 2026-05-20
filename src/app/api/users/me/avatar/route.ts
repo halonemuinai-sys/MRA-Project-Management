@@ -1,33 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getToken } from "next-auth/jwt";
 import { prisma } from "@/backend/lib/prisma";
 import path from "path";
 import fs from "fs/promises";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_SIZE = 2 * 1024 * 1024;
+
+async function getEmail(req: NextRequest): Promise<string | null> {
+  try {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    return (token?.email as string | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const email = await getEmail(req);
+    if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const formData = await req.formData();
     const file = formData.get("avatar") as File | null;
 
     if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: "Unsupported file format. Use JPG, PNG, WEBP, or GIF." }, { status: 400 });
-    }
-    if (file.size > MAX_SIZE) {
+    if (!ALLOWED_TYPES.includes(file.type))
+      return NextResponse.json({ error: "Unsupported format. Use JPG, PNG, WEBP, or GIF." }, { status: 400 });
+    if (file.size > MAX_SIZE)
       return NextResponse.json({ error: "File size must be under 2MB." }, { status: 400 });
-    }
 
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
     const filename = `${user.id}.${ext}`;
@@ -36,18 +40,14 @@ export async function POST(req: NextRequest) {
     await fs.mkdir(uploadDir, { recursive: true });
 
     if (user.image?.startsWith("/uploads/avatars/")) {
-      const oldPath = path.join(process.cwd(), "public", user.image);
-      await fs.unlink(oldPath).catch(() => null);
+      await fs.unlink(path.join(process.cwd(), "public", user.image)).catch(() => null);
     }
 
-    const bytes = await file.arrayBuffer();
-    await fs.writeFile(path.join(uploadDir, filename), Buffer.from(bytes));
-
-    const imageUrl = `/uploads/avatars/${filename}`;
+    await fs.writeFile(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
 
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { image: imageUrl },
+      data: { image: `/uploads/avatars/${filename}` },
       select: { id: true, name: true, email: true, image: true },
     });
 
@@ -58,19 +58,16 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const email = await getEmail(req);
+    if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     if (user.image?.startsWith("/uploads/avatars/")) {
-      const oldPath = path.join(process.cwd(), "public", user.image);
-      await fs.unlink(oldPath).catch(() => null);
+      await fs.unlink(path.join(process.cwd(), "public", user.image)).catch(() => null);
     }
 
     const updated = await prisma.user.update({

@@ -1,17 +1,14 @@
 // Nonaktifkan 2FA — wajib verifikasi password atau OTP
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthUser } from "@/app/api/_auth";
 import { prisma } from "@/backend/lib/prisma";
 import bcrypt from "bcryptjs";
 import speakeasy from "speakeasy";
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getAuthUser(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
   if (!user.twoFactorEnabled) return NextResponse.json({ error: "2FA tidak aktif." }, { status: 400 });
 
   const { password, otp } = await req.json();

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthEmail } from "@/app/api/_auth";
 import { prisma } from "@/backend/lib/prisma";
 import { z } from "zod";
 
@@ -17,11 +16,11 @@ async function getAuthorizedMember(taskId: string, email: string) {
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const auth = await getAuthorizedMember(id, session.user.email);
+  const auth = await getAuthorizedMember(id, email);
   if (!auth) return NextResponse.json({ error: "Not found or access denied" }, { status: 404 });
 
   const subtasks = await prisma.subtask.findMany({
@@ -35,11 +34,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 const createSchema = z.object({ title: z.string().min(1).max(200) });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const auth = await getAuthorizedMember(id, session.user.email);
+  const auth = await getAuthorizedMember(id, email);
   if (!auth) return NextResponse.json({ error: "Not found or access denied" }, { status: 404 });
   if (auth.task.project.members.find((m: { userId: string; role: string }) => m.userId === auth.user.id)?.role === "VIEWER") {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });

@@ -7,7 +7,7 @@ import { ToastProvider } from "@/frontend/lib/toast";
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <ToastProvider>
           {children}
         </ToastProvider>

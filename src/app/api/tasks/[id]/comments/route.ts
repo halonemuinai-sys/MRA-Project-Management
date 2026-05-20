@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthEmail, getAuthUser } from "@/app/api/_auth";
 import { prisma } from "@/backend/lib/prisma";
 import { sendEmail, emailMentioned } from "@/lib/email";
 import { z } from "zod";
@@ -10,8 +9,8 @@ const commentSchema = z.object({
 });
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id: taskId } = await params;
   const comments = await prisma.comment.findMany({
@@ -24,12 +23,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getAuthUser(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id: taskId } = await params;
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const body = await req.json();
   const parsed = commentSchema.safeParse(body);

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthEmail } from "@/app/api/_auth";
 import { prisma } from "@/backend/lib/prisma";
 
 async function getAuthorizedMember(taskId: string, userEmail: string) {
@@ -15,12 +14,12 @@ async function getAuthorizedMember(taskId: string, userEmail: string) {
   return member ? { user, task, member } : null;
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const auth = await getAuthorizedMember(id, session.user.email);
+  const auth = await getAuthorizedMember(id, email);
   if (!auth) return NextResponse.json({ error: "Access denied" }, { status: 403 });
 
   const deps = await prisma.taskDependency.findMany({
@@ -37,11 +36,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const auth = await getAuthorizedMember(id, session.user.email);
+  const auth = await getAuthorizedMember(id, email);
   if (!auth || auth.member.role === "VIEWER") return NextResponse.json({ error: "Access denied" }, { status: 403 });
 
   const { dependsOnId } = await req.json();
@@ -70,11 +69,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const auth = await getAuthorizedMember(id, session.user.email);
+  const auth = await getAuthorizedMember(id, email);
   if (!auth || auth.member.role === "VIEWER") return NextResponse.json({ error: "Access denied" }, { status: 403 });
 
   const { dependsOnId } = await req.json();

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthEmail } from "@/app/api/_auth";
 import { prisma } from "@/backend/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
@@ -30,11 +29,11 @@ async function getAuthorizedTask(taskId: string, email: string) {
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id: taskId } = await params;
-  const auth = await getAuthorizedTask(taskId, session.user.email);
+  const auth = await getAuthorizedTask(taskId, email);
   if (!auth) return NextResponse.json({ error: "Not found or access denied" }, { status: 404 });
 
   const attachments = await prisma.attachment.findMany({
@@ -47,11 +46,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id: taskId } = await params;
-  const auth = await getAuthorizedTask(taskId, session.user.email);
+  const auth = await getAuthorizedTask(taskId, email);
   if (!auth) return NextResponse.json({ error: "Not found or access denied" }, { status: 404 });
   if (auth.task.project.members.find((m: { userId: string; role: string }) => m.userId === auth.user.id)?.role === "VIEWER") {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });

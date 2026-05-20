@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthEmail } from "@/app/api/_auth";
 import { prisma } from "@/backend/lib/prisma";
 import { z } from "zod";
 
@@ -23,11 +22,11 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const auth = await getAuthorizedSubtask(id, session.user.email);
+  const auth = await getAuthorizedSubtask(id, email);
   if (!auth) return NextResponse.json({ error: "Not found or access denied" }, { status: 404 });
 
   const body = await req.json();
@@ -39,11 +38,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const auth = await getAuthorizedSubtask(id, session.user.email);
+  const auth = await getAuthorizedSubtask(id, email);
   if (!auth) return NextResponse.json({ error: "Not found or access denied" }, { status: 404 });
 
   await prisma.subtask.delete({ where: { id } });

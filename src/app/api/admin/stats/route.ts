@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/app/api/admin/_guard";
 import { prisma } from "@/backend/lib/prisma";
 
-export async function GET() {
-  const admin = await requireAdmin();
+export async function GET(req: NextRequest) {
+  const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

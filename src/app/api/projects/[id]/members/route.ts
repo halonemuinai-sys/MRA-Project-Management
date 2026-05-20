@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthEmail } from "@/app/api/_auth";
 import { prisma } from "@/backend/lib/prisma";
 import { z } from "zod";
 
@@ -19,13 +18,13 @@ async function getOwner(projectId: string, userEmail: string) {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
+  const email = await getAuthEmail(req);
+  if (!email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id: projectId } = await params;
-  const owner = await getOwner(projectId, session.user.email);
+  const owner = await getOwner(projectId, email);
   if (!owner) {
     return NextResponse.json({ error: "Hanya owner yang bisa menambah anggota" }, { status: 403 });
   }

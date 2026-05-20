@@ -9,6 +9,7 @@ interface TeamMember {
   id: string;
   name: string | null;
   email: string | null;
+  role?: "USER" | "ADMIN";
   createdAt: string;
   _count: { ownedProjects: number; assignedTasks: number; projectMembers: number };
 }

@@ -1,12 +1,11 @@
 // First-time admin setup — only works when zero admins exist in the system
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthEmail, getAuthUser } from "@/app/api/_auth";
 import { prisma } from "@/backend/lib/prisma";
 
-export async function POST() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function POST(req: NextRequest) {
+  const email = await getAuthEmail(req);
+  if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
   if (adminCount > 0) {
@@ -14,7 +13,7 @@ export async function POST() {
   }
 
   const user = await prisma.user.update({
-    where: { email: session.user.email },
+    where: { email },
     data: { role: "ADMIN" },
     select: { id: true, name: true, email: true, role: true },
   });

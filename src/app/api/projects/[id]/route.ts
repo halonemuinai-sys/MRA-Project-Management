@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthUser } from "@/app/api/_auth";
 import { prisma } from "@/backend/lib/prisma";
 import { z } from "zod";
 
@@ -10,10 +9,6 @@ const updateProjectSchema = z.object({
   status: z.enum(["ACTIVE", "ON_HOLD", "COMPLETED", "ARCHIVED"]).optional(),
   deadline: z.string().datetime().nullable().optional(),
 });
-
-async function getUser(email: string) {
-  return prisma.user.findUnique({ where: { email } });
-}
 
 async function checkAccess(projectId: string, userId: string) {
   return prisma.project.findFirst({
@@ -45,12 +40,10 @@ async function getFullProject(projectId: string) {
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getAuthUser(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const user = await getUser(session.user.email);
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const access = await checkAccess(id, user.id);
   if (!access) return NextResponse.json({ error: "Project not found" }, { status: 404 });
@@ -62,12 +55,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getAuthUser(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const user = await getUser(session.user.email);
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const access = await checkAccess(id, user.id);
   if (!access) return NextResponse.json({ error: "Project not found" }, { status: 404 });
@@ -95,12 +86,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getAuthUser(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const user = await getUser(session.user.email);
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const access = await checkAccess(id, user.id);
   if (!access) return NextResponse.json({ error: "Project not found" }, { status: 404 });

@@ -6,7 +6,7 @@ import { prisma } from "@/backend/lib/prisma";
 import { sendEmail, emailDeadlineReminder } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { daysAhead = 3 } = await req.json().catch(() => ({}));

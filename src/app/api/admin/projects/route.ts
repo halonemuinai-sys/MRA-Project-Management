@@ -3,7 +3,7 @@ import { requireAdmin } from "@/app/api/admin/_guard";
 import { prisma } from "@/backend/lib/prisma";
 
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
