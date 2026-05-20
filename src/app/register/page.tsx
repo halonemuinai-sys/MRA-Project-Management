@@ -136,7 +136,7 @@ export default function RegisterPage() {
                   <input
                     {...register("email")}
                     type="email"
-                    placeholder="admin@mra.com"
+                    placeholder="Enter your email"
                     className="w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all shadow-inner"
                   />
                 </div>
