@@ -297,7 +297,7 @@ function LoginContent() {
                       <label className="text-sm font-medium text-neutral-300">Email</label>
                       <div className="relative group">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-500 group-focus-within:text-indigo-400 transition-colors pointer-events-none" />
-                        <input {...loginForm.register("email")} type="email" placeholder="admin@mra.com" className={inputCls} />
+                        <input {...loginForm.register("email")} type="email" placeholder="Enter your email" className={inputCls} />
                       </div>
                       {loginForm.formState.errors.email && <p className="text-red-400 text-xs font-medium">{loginForm.formState.errors.email.message}</p>}
                     </div>
