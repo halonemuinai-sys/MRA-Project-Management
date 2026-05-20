@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, ChevronDown, SlidersHorizontal, X, ChevronLeft, ChevronRight,
@@ -9,6 +9,23 @@ import {
 import { ProjectCard } from "@/frontend/components/projects/ProjectCard";
 import { CreateProjectModal, EditProjectModal } from "@/frontend/components/projects/ProjectFormModal";
 import { ProjectListItem, ProjectStatus, STATUS_LABELS } from "@/frontend/components/projects/types";
+
+// ─── Types ──────────────────────────────────────────────────────────────────────
+
+interface ProjectMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  stats: {
+    total: number;
+    active: number;
+    onHold: number;
+    completed: number;
+    archived: number;
+    members: number;
+  };
+}
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -31,25 +48,6 @@ const STATUS_FILTERS: { value: ProjectStatus | "ALL"; label: string }[] = [
   { value: "COMPLETED", label: STATUS_LABELS.COMPLETED },
   { value: "ARCHIVED",  label: STATUS_LABELS.ARCHIVED },
 ];
-
-function sortProjects(projects: ProjectListItem[], sortBy: SortKey): ProjectListItem[] {
-  return [...projects].sort((a, b) => {
-    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-    switch (sortBy) {
-      case "newest":   return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case "oldest":   return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      case "name_asc": return a.name.localeCompare(b.name);
-      case "name_desc":return b.name.localeCompare(a.name);
-      case "deadline": {
-        if (!a.deadline && !b.deadline) return 0;
-        if (!a.deadline) return 1; if (!b.deadline) return -1;
-        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-      }
-      case "tasks":    return b._count.tasks - a._count.tasks;
-      default:         return 0;
-    }
-  });
-}
 
 // ─── Stat Card ─────────────────────────────────────────────────────────────────
 
@@ -118,6 +116,7 @@ function EmptyIllustration() {
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [meta, setMeta] = useState<ProjectMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectListItem | null>(null);
@@ -126,48 +125,75 @@ export default function ProjectsPage() {
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
 
+  // Reset to page 1 when filter or sort changes
   useEffect(() => { setPage(1); }, [filterStatus, sortBy]);
 
-  const handlePinToggle = (id: string, pinned: boolean) =>
-    setProjects((prev) => prev.map((p) => p.id === id ? { ...p, pinned } : p));
-
-  const fetchProjects = useCallback(async () => {
+  // Fetch from server whenever page / filter / sort / refreshKey changes
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    const res = await fetch("/api/projects");
-    if (res.ok) setProjects(await res.json());
-    setLoading(false);
-  }, []);
 
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+    const qs = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE), sort: sortBy });
+    if (filterStatus !== "ALL") qs.set("status", filterStatus);
 
-  const allDisplayed = useMemo(() => {
-    const filtered = filterStatus === "ALL" ? projects : projects.filter((p) => p.status === filterStatus);
-    return sortProjects(filtered, sortBy);
-  }, [projects, filterStatus, sortBy]);
+    fetch(`/api/projects?${qs}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        if (!cancelled && json) {
+          setProjects(json.data);
+          setMeta(json.meta);
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-  const totalPages = Math.max(1, Math.ceil(allDisplayed.length / PAGE_SIZE));
-  const displayed = allDisplayed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    return () => { cancelled = true; };
+  }, [page, filterStatus, sortBy, refreshKey]);
+
+  const refresh = () => setRefreshKey((k) => k + 1);
+
+  const handlePinToggle = (id: string, pinned: boolean) => {
+    setProjects((prev) => prev.map((p) => p.id === id ? { ...p, pinned } : p));
+    setTimeout(refresh, 400);
+  };
+
+  const stats = meta?.stats ?? { total: 0, active: 0, onHold: 0, completed: 0, archived: 0, members: 0 };
+  const totalPages = meta?.totalPages ?? 1;
   const hasActiveFilter = filterStatus !== "ALL" || sortBy !== "newest";
   const activeSortLabel = SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "Newest";
 
-  const stats = useMemo(() => ({
-    total:    projects.length,
-    active:   projects.filter((p) => p.status === "ACTIVE").length,
-    onHold:   projects.filter((p) => p.status === "ON_HOLD").length,
-    completed:projects.filter((p) => p.status === "COMPLETED").length,
-    members:  projects.reduce((s, p) => s + p._count.members, 0),
-  }), [projects]);
+  // Smart pagination — show at most 7 page buttons with ellipsis
+  function getPaginationRange(current: number, total: number): (number | "…")[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const delta = 2;
+    const left  = Math.max(2, current - delta);
+    const right = Math.min(total - 1, current + delta);
+    const range: (number | "…")[] = [1];
+    if (left > 2) range.push("…");
+    for (let i = left; i <= right; i++) range.push(i);
+    if (right < total - 1) range.push("…");
+    range.push(total);
+    return range;
+  }
 
   return (
     <>
       <AnimatePresence>
-        {showCreate && <CreateProjectModal onClose={() => setShowCreate(false)} onCreated={fetchProjects} />}
+        {showCreate && (
+          <CreateProjectModal
+            onClose={() => setShowCreate(false)}
+            onCreated={() => { refresh(); }}
+          />
+        )}
         {editingProject && (
           <EditProjectModal
             project={editingProject}
             onClose={() => setEditingProject(null)}
-            onUpdated={(updated) => setProjects((prev) => prev.map((p) => p.id === updated.id ? updated : p))}
+            onUpdated={(updated) => {
+              setProjects((prev) => prev.map((p) => p.id === updated.id ? updated : p));
+              setEditingProject(null);
+            }}
           />
         )}
       </AnimatePresence>
@@ -193,40 +219,47 @@ export default function ProjectsPage() {
         </div>
 
         {/* ── Stats Row ── */}
-        {loading ? (
+        {loading && !meta ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total Projects"  value={stats.total}     icon={FolderKanban}  iconBg="bg-blue-50 dark:bg-blue-500/10"    iconColor="text-blue-600 dark:text-blue-400"    loading={false} delay={0} />
-            <StatCard label="In Progress"     value={stats.active}    icon={Clock}         iconBg="bg-violet-50 dark:bg-violet-500/10" iconColor="text-violet-600 dark:text-violet-400" loading={false} delay={0.05} />
+            <StatCard label="Total Projects"  value={stats.total}     icon={FolderKanban}  iconBg="bg-blue-50 dark:bg-blue-500/10"       iconColor="text-blue-600 dark:text-blue-400"    loading={false} delay={0} />
+            <StatCard label="In Progress"     value={stats.active}    icon={Clock}         iconBg="bg-violet-50 dark:bg-violet-500/10"   iconColor="text-violet-600 dark:text-violet-400" loading={false} delay={0.05} />
             <StatCard label="Completed"       value={stats.completed} icon={CheckCircle2}  iconBg="bg-emerald-50 dark:bg-emerald-500/10" iconColor="text-emerald-600 dark:text-emerald-400" loading={false} delay={0.1} />
-            <StatCard label="Active Members"  value={stats.members}   icon={Users}         iconBg="bg-sky-50 dark:bg-sky-500/10"       iconColor="text-sky-600 dark:text-sky-400"      loading={false} delay={0.15} />
+            <StatCard label="Active Members"  value={stats.members}   icon={Users}         iconBg="bg-sky-50 dark:bg-sky-500/10"         iconColor="text-sky-600 dark:text-sky-400"      loading={false} delay={0.15} />
           </div>
         )}
 
         {/* ── Filter & Sort bar ── */}
-        {!loading && projects.length > 0 && (
+        {!loading && stats.total > 0 && (
           <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
             className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl px-4 py-3">
 
             <div className="flex items-center gap-1.5 flex-wrap flex-1">
               <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
-              {STATUS_FILTERS.map((f) => (
-                <button key={f.value} type="button"
-                  onClick={() => setFilterStatus(f.value)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                    filterStatus === f.value
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                  }`}>
-                  {f.label}
-                  {f.value !== "ALL" && (
-                    <span className="ml-1.5 opacity-60">{projects.filter((p) => p.status === f.value).length}</span>
-                  )}
-                </button>
-              ))}
+              {STATUS_FILTERS.map((f) => {
+                const count = f.value === "ACTIVE"    ? stats.active
+                            : f.value === "ON_HOLD"   ? stats.onHold
+                            : f.value === "COMPLETED" ? stats.completed
+                            : f.value === "ARCHIVED"  ? stats.archived
+                            : null;
+                return (
+                  <button key={f.value} type="button"
+                    onClick={() => setFilterStatus(f.value)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                      filterStatus === f.value
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                    }`}>
+                    {f.label}
+                    {count !== null && (
+                      <span className="ml-1.5 opacity-60">{count}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -275,9 +308,9 @@ export default function ProjectsPage() {
         )}
 
         {/* Results info */}
-        {!loading && projects.length > 0 && filterStatus !== "ALL" && (
+        {!loading && meta && stats.total > 0 && filterStatus !== "ALL" && (
           <p className="text-sm text-neutral-500">
-            Showing <span className="font-semibold text-neutral-700 dark:text-neutral-300">{allDisplayed.length}</span> of {projects.length} projects
+            Showing <span className="font-semibold text-neutral-700 dark:text-neutral-300">{meta.total}</span> of {stats.total} projects
           </p>
         )}
 
@@ -289,7 +322,7 @@ export default function ProjectsPage() {
             ))}
           </div>
 
-        ) : projects.length === 0 ? (
+        ) : stats.total === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -303,18 +336,16 @@ export default function ProjectsPage() {
               to start managing tasks, collaborating with your team, and tracking
               progress more effectively.
             </p>
-            <div className="flex items-center gap-3 flex-wrap justify-center">
-              <button
-                type="button"
-                onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-sm font-semibold rounded-full transition-all shadow-md shadow-blue-600/20"
-              >
-                <Plus className="w-4 h-4" /> Create First Project
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-sm font-semibold rounded-full transition-all shadow-md shadow-blue-600/20"
+            >
+              <Plus className="w-4 h-4" /> Create First Project
+            </button>
           </motion.div>
 
-        ) : displayed.length === 0 ? (
+        ) : projects.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800">
             <FolderKanban className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mb-3" />
@@ -329,7 +360,7 @@ export default function ProjectsPage() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <AnimatePresence mode="popLayout">
-                {displayed.map((project, i) => (
+                {projects.map((project, i) => (
                   <motion.div key={project.id} layout
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -338,7 +369,7 @@ export default function ProjectsPage() {
                     <ProjectCard
                       project={project}
                       onEdit={setEditingProject}
-                      onDeleted={(id) => setProjects((prev) => prev.filter((p) => p.id !== id))}
+                      onDeleted={() => refresh()}
                       onPinToggle={handlePinToggle}
                     />
                   </motion.div>
@@ -347,26 +378,30 @@ export default function ProjectsPage() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalPages > 1 && meta && (
               <div className="flex items-center justify-center gap-1.5 pt-2">
                 <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
                   className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <button key={p} type="button" onClick={() => setPage(p)}
-                    className={`min-w-[36px] h-9 px-2 rounded-xl text-sm font-medium transition-colors ${
-                      p === page ? "bg-blue-600 text-white shadow-sm" : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                    }`}>
-                    {p}
-                  </button>
-                ))}
+                {getPaginationRange(page, totalPages).map((p, i) =>
+                  p === "…" ? (
+                    <span key={`ellipsis-${i}`} className="min-w-[36px] h-9 flex items-center justify-center text-sm text-neutral-400">…</span>
+                  ) : (
+                    <button key={p} type="button" onClick={() => setPage(p as number)}
+                      className={`min-w-[36px] h-9 px-2 rounded-xl text-sm font-medium transition-colors ${
+                        p === page ? "bg-blue-600 text-white shadow-sm" : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                      }`}>
+                      {p}
+                    </button>
+                  )
+                )}
                 <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                   className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                   <ChevronRight className="w-4 h-4" />
                 </button>
                 <span className="text-sm text-neutral-400 ml-1">
-                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, allDisplayed.length)} of {allDisplayed.length}
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, meta.total)} of {meta.total}
                 </span>
               </div>
             )}

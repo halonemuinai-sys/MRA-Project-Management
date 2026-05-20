@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -30,7 +30,7 @@ const inputCls = "w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-80
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState<"credentials" | "otp">("credentials");
@@ -277,5 +277,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

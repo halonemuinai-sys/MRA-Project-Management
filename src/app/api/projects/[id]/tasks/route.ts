@@ -27,19 +27,43 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!member) return NextResponse.json({ error: "Access denied" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status") as string | null;
+  const status  = searchParams.get("status") as "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" | null;
+  const page    = parseInt(searchParams.get("page")  ?? "0", 10); // 0 = no pagination
+  const limit   = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
+  const sortBy  = searchParams.get("sortBy") ?? "createdAt";
+  const sortDir = (searchParams.get("sortDir") ?? "desc") as "asc" | "desc";
 
-  const tasks = await prisma.task.findMany({
-    where: {
-      projectId,
-      ...(status ? { status: status as "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" } : {}),
-    },
-    include: {
-      assignee: { select: { id: true, name: true, email: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const where = {
+    projectId,
+    ...(status ? { status } : {}),
+  };
 
+  type OrderInput = { title?: "asc" | "desc"; priority?: "asc" | "desc"; createdAt?: "asc" | "desc"; dueDate?: { sort: "asc" | "desc"; nulls: "last" } };
+  const orderBy: OrderInput = (() => {
+    switch (sortBy) {
+      case "title":    return { title: sortDir };
+      case "priority": return { priority: sortDir };
+      case "dueDate":  return { dueDate: { sort: sortDir, nulls: "last" as const } };
+      default:         return { createdAt: sortDir };
+    }
+  })();
+
+  const include = {
+    assignee: { select: { id: true, name: true, email: true } },
+  };
+
+  if (page > 0) {
+    const [total, tasks] = await Promise.all([
+      prisma.task.count({ where }),
+      prisma.task.findMany({ where, include, orderBy, skip: (page - 1) * limit, take: limit }),
+    ]);
+    return NextResponse.json({
+      data: tasks,
+      meta: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) },
+    });
+  }
+
+  const tasks = await prisma.task.findMany({ where, include, orderBy });
   return NextResponse.json(tasks);
 }
 
