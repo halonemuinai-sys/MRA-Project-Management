@@ -209,10 +209,6 @@ function LoginContent() {
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
               MRA Project <br /> Management
             </h1>
-            <p className="text-neutral-400 text-base max-w-md mx-auto leading-relaxed">
-              Premium operational management and IT governance platform
-              for enterprise business efficiency.
-            </p>
 
             {/* Feature chips */}
             <div className="flex items-center justify-center gap-2.5 mt-8 flex-wrap">
