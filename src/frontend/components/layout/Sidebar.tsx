@@ -25,9 +25,9 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
       <div className="h-16 flex items-center justify-between px-6 border-b border-neutral-200 dark:border-white/[0.06]">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">M</span>
+            <span className="text-white font-bold text-sm">A</span>
           </div>
-          <span className="font-bold text-lg text-neutral-900 dark:text-white tracking-tight">MRA Retail</span>
+          <span className="font-bold text-lg text-neutral-900 dark:text-white tracking-tight">Ares Ops</span>
         </div>
         {onClose && (
           <button type="button" onClick={onClose} title="Close menu"
