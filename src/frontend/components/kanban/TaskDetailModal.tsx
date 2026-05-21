@@ -309,11 +309,11 @@ function MentionInput({ value, onChange, members, onSubmit, sending }: {
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex gap-2 p-4 border-t border-neutral-100 dark:border-neutral-800">
+    <form onSubmit={onSubmit} className="flex gap-3 px-6 py-4 border-t border-neutral-100 dark:border-neutral-800">
       <div className="flex-1 relative">
         <input ref={inputRef} value={value} onChange={handleChange} onKeyDown={handleKeyDown}
           placeholder="Write a comment... (use @ to mention)" title="Comment"
-          className="w-full px-3.5 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all" />
+          className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all" />
 
         <AnimatePresence>
           {showDropdown && filtered.length > 0 && (
@@ -728,18 +728,18 @@ export function TaskDetailModal({ task, currentUserId, projectId, members, onClo
         className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-xl bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 flex flex-col max-h-[88vh]">
+        className="relative w-full max-w-3xl bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b border-neutral-100 dark:border-neutral-800">
+        <div className="flex items-start justify-between p-6 border-b border-neutral-100 dark:border-neutral-800">
           <div className="flex-1 pr-4">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${PRIORITY_STYLES[task.priority]}`}>
-                <Flag className="w-2.5 h-2.5" />{task.priority}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${PRIORITY_STYLES[task.priority]}`}>
+                <Flag className="w-3 h-3" />{task.priority}
               </span>
-              {isOverdue && <span className="text-xs font-semibold text-red-500 bg-red-50 dark:bg-red-500/10 px-2 py-0.5 rounded-full">Overdue</span>}
+              {isOverdue && <span className="text-xs font-semibold text-red-500 bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-full">Overdue</span>}
             </div>
-            <h2 className={`text-base font-bold ${task.status === "DONE" ? "line-through text-neutral-400" : "text-neutral-900 dark:text-white"}`}>
+            <h2 className={`text-xl font-bold ${task.status === "DONE" ? "line-through text-neutral-400" : "text-neutral-900 dark:text-white"}`}>
               {task.title}
             </h2>
           </div>
@@ -750,7 +750,7 @@ export function TaskDetailModal({ task, currentUserId, projectId, members, onClo
         </div>
 
         {/* Meta + Labels */}
-        <div className="flex flex-wrap gap-3 px-5 py-3 border-b border-neutral-100 dark:border-neutral-800 text-xs text-neutral-500">
+        <div className="flex flex-wrap gap-4 px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 text-sm text-neutral-500">
           {task.assignee && (
             <span className="flex items-center gap-1.5">
               <div className="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-white text-[9px] font-bold">
@@ -822,28 +822,28 @@ export function TaskDetailModal({ task, currentUserId, projectId, members, onClo
 
         {/* Description */}
         {task.description && (
-          <div className="px-5 py-3 border-b border-neutral-100 dark:border-neutral-800">
+          <div className="px-6 py-5 border-b border-neutral-100 dark:border-neutral-800">
             <MarkdownRenderer content={task.description} className="text-neutral-600 dark:text-neutral-400" />
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex items-center gap-0.5 px-5 pt-3 pb-0 border-b border-neutral-100 dark:border-neutral-800 overflow-x-auto">
+        <div className="flex items-center gap-1 px-6 pt-4 pb-0 border-b border-neutral-100 dark:border-neutral-800 overflow-x-auto">
           {TABS.map(({ key, icon: Icon, label, count }) => (
             <button key={key} type="button" onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg border-b-2 whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 whitespace-nowrap transition-all ${
                 activeTab === key
                   ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
                   : "border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
               }`}>
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-4 h-4" />
               {label} {count > 0 && `(${count})`}
             </button>
           ))}
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
 
           {/* Comments */}
           {activeTab === "comments" && (
