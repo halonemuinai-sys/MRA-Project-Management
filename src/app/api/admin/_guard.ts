@@ -1,9 +1,15 @@
-// Shared admin guard — returns user if admin, null otherwise
+// Shared admin guard — always re-reads role from DB (not JWT cache)
 import { NextRequest } from "next/server";
-import { getAuthRole, getAuthUser } from "@/app/api/_auth";
+import { getAuthUser } from "@/app/api/_auth";
+import { prisma } from "@/backend/lib/prisma";
 
 export async function requireAdmin(req: NextRequest) {
-  const role = await getAuthRole(req);
-  if (!role || role !== "ADMIN") return null;
-  return getAuthUser(req);
+  const user = await getAuthUser(req);
+  if (!user) return null;
+  const fresh = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { role: true },
+  });
+  if (fresh?.role !== "ADMIN") return null;
+  return user;
 }

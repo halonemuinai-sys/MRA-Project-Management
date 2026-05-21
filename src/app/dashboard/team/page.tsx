@@ -694,7 +694,7 @@ export default function TeamPage() {
                   member={member}
                   index={i}
                   onClick={() => setDetailUser({ id: member.id, index: members.indexOf(member) })}
-                  canDelete={isAdmin && member.id !== currentUserId}
+                  canDelete={member.id !== currentUserId}
                   onDelete={(e) => { e.stopPropagation(); setConfirmDelete(member); }}
                 />
               ))}
@@ -719,7 +719,7 @@ export default function TeamPage() {
                 ))}
               </div>
               <div className="hidden lg:block w-28 text-right text-[10px] font-bold text-neutral-400 uppercase tracking-wider flex-shrink-0">Joined</div>
-              <div className={`flex-shrink-0 ${isAdmin ? "w-16" : "w-5"}`} />
+              <div className="flex-shrink-0 w-16" />
             </div>
             <AnimatePresence mode="popLayout">
               {displayed.map((member, i) => (
@@ -728,7 +728,7 @@ export default function TeamPage() {
                   member={member}
                   index={i}
                   onClick={() => setDetailUser({ id: member.id, index: members.indexOf(member) })}
-                  canDelete={isAdmin && member.id !== currentUserId}
+                  canDelete={member.id !== currentUserId}
                   onDelete={(e) => { e.stopPropagation(); setConfirmDelete(member); }}
                 />
               ))}
