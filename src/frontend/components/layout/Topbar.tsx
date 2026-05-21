@@ -165,9 +165,14 @@ function NotificationBell() {
 
   const fetchNotifs = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/notifications");
-    if (res.ok) setNotifs(await res.json());
-    setLoading(false);
+    try {
+      const res = await fetch("/api/notifications");
+      if (res.ok) setNotifs(await res.json());
+    } catch {
+      // silently ignore network errors (server restart, offline, etc.)
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const markAllRead = async () => {
