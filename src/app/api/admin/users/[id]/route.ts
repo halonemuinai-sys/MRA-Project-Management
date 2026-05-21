@@ -21,8 +21,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin(req);
-  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  // Debug: trace exactly where auth fails
+  const { getToken } = await import("next-auth/jwt");
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET }).catch(() => null);
+  if (!token) return NextResponse.json({ error: "Debug: token is null — not authenticated" }, { status: 403 });
+
+  const dbUser = await prisma.user.findUnique({ where: { email: token.email! }, select: { id: true, role: true } });
+  if (!dbUser) return NextResponse.json({ error: `Debug: no user found for email ${token.email}` }, { status: 403 });
+  if (dbUser.role !== "ADMIN") return NextResponse.json({ error: `Debug: role is ${dbUser.role}, not ADMIN` }, { status: 403 });
+
+  const admin = dbUser;
 
   const { id } = await params;
   if (id === admin.id) return NextResponse.json({ error: "Cannot delete your own account." }, { status: 400 });
