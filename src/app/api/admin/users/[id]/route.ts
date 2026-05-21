@@ -30,28 +30,26 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const user = await prisma.user.findUnique({ where: { id }, select: { email: true } });
   if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
 
-  // Clean up all related records in the correct order before deleting the user
-  await prisma.$transaction(async (tx) => {
-    // Unassign tasks instead of deleting them
-    await tx.task.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
-    // Remove memberships in other people's projects
-    await tx.projectMember.deleteMany({ where: { userId: id } });
-    // Delete user's own content
-    await tx.comment.deleteMany({ where: { authorId: id } });
-    await tx.activityLog.deleteMany({ where: { userId: id } });
-    await tx.timeEntry.deleteMany({ where: { userId: id } });
-    await tx.attachment.deleteMany({ where: { uploadedById: id } });
-    await tx.projectTemplate.deleteMany({ where: { createdById: id } });
-    // Delete owned projects (cascades to tasks, labels, subtasks, etc.)
-    await tx.project.deleteMany({ where: { ownerId: id } });
-    // Clean up auth tokens
-    if (user.email) {
-      await tx.emailVerificationToken.deleteMany({ where: { email: user.email } });
-      await tx.passwordResetToken.deleteMany({ where: { email: user.email } });
-    }
-    // Finally delete the user (Account + Session + Notification cascade automatically)
-    await tx.user.delete({ where: { id } });
-  });
-
-  return NextResponse.json({ success: true });
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.task.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.projectMember.deleteMany({ where: { userId: id } });
+      await tx.comment.deleteMany({ where: { authorId: id } });
+      await tx.activityLog.deleteMany({ where: { userId: id } });
+      await tx.timeEntry.deleteMany({ where: { userId: id } });
+      await tx.attachment.deleteMany({ where: { uploadedById: id } });
+      await tx.projectTemplate.deleteMany({ where: { createdById: id } });
+      await tx.project.deleteMany({ where: { ownerId: id } });
+      if (user.email) {
+        await tx.emailVerificationToken.deleteMany({ where: { email: user.email } });
+        await tx.passwordResetToken.deleteMany({ where: { email: user.email } });
+      }
+      await tx.user.delete({ where: { id } });
+    });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[DELETE user]", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

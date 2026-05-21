@@ -441,7 +441,8 @@ export default function TeamPage() {
       setMembers((prev) => prev.filter((m) => m.id !== confirmDelete.id));
       toast(`${confirmDelete.name ?? confirmDelete.email} has been removed.`, "info");
     } else {
-      toast("Failed to delete member.", "error");
+      const body = await res.json().catch(() => ({}));
+      toast(body?.error ?? "Failed to delete member.", "error");
     }
   };
 
